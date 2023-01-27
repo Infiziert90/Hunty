@@ -144,7 +144,7 @@ public class MainWindow : Window, IDisposable
                 if (!isDuty)
                 {
                     ImGui.TableNextColumn();
-                    if (ImGui.Selectable($"{m.GetLocation().Name} {m.GetLocation().MapLink.CoordinateString}"))
+                    if (ImGui.Selectable($"{m.GetLocation().Name} {m.GetLocation().MapLink.CoordinateString}##{m.Icon.ToString()}"))
                     {
                         Plugin.SetMapMarker(m.GetLocation().MapLink);
                     }
