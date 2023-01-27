@@ -34,6 +34,7 @@ namespace Hunty
         private GameGui GameGui { get; init; }
         public WindowSystem WindowSystem = new("Hunty");
         public ClientState ClientState = null!;
+        public MainWindow MainWindow = null!;
 
         public HuntingData HuntingData = null!;
         
@@ -53,9 +54,9 @@ namespace Hunty
             
             Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
             Configuration.Initialize(PluginInterface);
-        
-            WindowSystem.AddWindow(new MainWindow(this));
-            WindowSystem.AddWindow(new ConfigWindow(this));
+
+            MainWindow = new MainWindow(this);
+            WindowSystem.AddWindow(MainWindow);
             
             CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
             {
@@ -63,7 +64,6 @@ namespace Hunty
             });
             
             PluginInterface.UiBuilder.Draw += DrawUI;
-            PluginInterface.UiBuilder.OpenConfigUi += DrawConfigUI;
             
             TexturesCache.Initialize();
             
@@ -86,13 +86,13 @@ namespace Hunty
         {
             TexturesCache.Instance?.Dispose();
             
-            WindowSystem.RemoveAllWindows();
+            MainWindow.Dispose();
+            WindowSystem.RemoveWindow(MainWindow);
             CommandManager.RemoveHandler(CommandName);
         }
         
-        private void OnCommand(string command, string args) => WindowSystem.GetWindow("Hunty")!.IsOpen = true;
+        private void OnCommand(string command, string args) => MainWindow.IsOpen = true;
         private void DrawUI() => WindowSystem.Draw();
-        private void DrawConfigUI() => WindowSystem.GetWindow("Configuration")!.IsOpen = true;
         
         public void SetMapMarker(MapLinkPayload map) => GameGui.OpenMapWithMapLink(map);
         
@@ -105,7 +105,7 @@ namespace Hunty
         }
 
         private static List<string> GrandCompanies = new() {"No GC", "Maelstrom", "Twin Adder", "Immortal Flames"};
-        
+
         public unsafe string GetGrandCompany()
         {
             return GrandCompanies[UIState.Instance()->PlayerState.GrandCompany];
