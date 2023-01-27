@@ -9,13 +9,14 @@ using System.IO;
 using System.Linq;
 using Hunty.Windows;
 using Dalamud.Data;
+using Dalamud.Game.ClientState;
 using Dalamud.Game.Command;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Interface.Windowing;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using Lumina.Excel.GeneratedSheets;
 using Newtonsoft.Json;
-using MapType = FFXIVClientStructs.FFXIV.Client.UI.Agent.MapType;
+using Map = Lumina.Excel.GeneratedSheets.Map;
 
 namespace Hunty
 {
@@ -32,19 +33,23 @@ namespace Hunty
         private Framework Framework { get; init; }
         private GameGui GameGui { get; init; }
         public WindowSystem WindowSystem = new("Hunty");
+        public ClientState ClientState = null!;
 
         public HuntingData HuntingData = null!;
+        
         
         public Plugin(
             [RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
             [RequiredVersion("1.0")] Framework framework,
             [RequiredVersion("1.0")] GameGui gameGui,
-            [RequiredVersion("1.0")] CommandManager commandManager)
-        {
+            [RequiredVersion("1.0")] CommandManager commandManager,
+            [RequiredVersion("1.0")] ClientState clientState)
+        {   
             PluginInterface = pluginInterface;
             Framework = framework;
             GameGui = gameGui;
             CommandManager = commandManager;
+            ClientState = clientState;
             
             Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
             Configuration.Initialize(PluginInterface);
@@ -59,100 +64,58 @@ namespace Hunty
             
             PluginInterface.UiBuilder.Draw += DrawUI;
             PluginInterface.UiBuilder.OpenConfigUi += DrawConfigUI;
-            // try
-            // {
-            //     PluginLog.Debug("Loading Monsters.");
-            //     
-            //     var path = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "monsters.json");
-            //     var jsonString = File.ReadAllText(path);
-            //     HuntingData = (HuntingData) JsonConvert.DeserializeObject(jsonString, new JsonSerializerSettings()
-            //     {
-            //         TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple,
-            //         TypeNameHandling = TypeNameHandling.Objects
-            //     });
-            // }
-            // catch (Exception e)
-            // {
-            //     PluginLog.Error("There was a problem building the HuntingData.");
-            //     PluginLog.Error(e.Message);
-            // }
-
+            
+            TexturesCache.Initialize();
+            
             try
             {
-                var Hunt = new HuntingData();
+                PluginLog.Debug("Loading Monsters.");
                 
-                PrintMonsterNote(Hunt);
-                
-                var l = JsonConvert.SerializeObject(Hunt, new JsonSerializerSettings()
-                {
-                    TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple,
-                    TypeNameHandling = TypeNameHandling.All,
-                    Formatting = Formatting.Indented,
-                });
-                
-                PluginLog.Information(PluginInterface.AssemblyLocation.Directory?.FullName!, "monsters.json");
-                var writePath = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "monsters.json");
-                File.WriteAllText(writePath, l);
-                
-                var hunt = JsonConvert.DeserializeObject<HuntingData>(l, new JsonSerializerSettings()
-                {
-                    TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple,
-                    TypeNameHandling = TypeNameHandling.All,
-                });
+                var path = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "monsters.json");
+                var jsonString = File.ReadAllText(path);
+                HuntingData = JsonConvert.DeserializeObject<HuntingData>(jsonString);
             }
             catch (Exception e)
             {
                 PluginLog.Error("There was a problem building the HuntingData.");
                 PluginLog.Error(e.Message);
             }
-            // var Hunt = new HuntingData();
-            // PrintMonsterNote(Hunt);
-            // var l = JsonConvert.SerializeObject(Hunt, new JsonSerializerSettings()
-            // {
-            //     TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple,
-            //     TypeNameHandling = TypeNameHandling.Objects,
-            //     Formatting = Formatting.Indented,
-            // });
-            //
-            // PluginLog.Information(PluginInterface.AssemblyLocation.Directory?.FullName!, "monsters.json");
-            // var writePath = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "monsters.json");
-            // File.WriteAllText(writePath, l);
         }
 
         public void Dispose()
         {
+            TexturesCache.Instance?.Dispose();
+            
             WindowSystem.RemoveAllWindows();
             CommandManager.RemoveHandler(CommandName);
         }
         
-        private void OnCommand(string command, string args)
-        {
-            WindowSystem.GetWindow("Grimoire")!.IsOpen = true;
-        }
+        private void OnCommand(string command, string args) => WindowSystem.GetWindow("Hunty")!.IsOpen = true;
+        private void DrawUI() => WindowSystem.Draw();
+        private void DrawConfigUI() => WindowSystem.GetWindow("Configuration")!.IsOpen = true;
         
-        private void DrawUI()
+        public void SetMapMarker(MapLinkPayload map) => GameGui.OpenMapWithMapLink(map);
+        
+        public string GetLocalPlayerJob()
         {
-            WindowSystem.Draw();
+            var local = ClientState.LocalPlayer;
+            if (local == null || local.ClassJob.GameData == null) 
+                return "";
+            return Helper.ToTitleCaseExtended(local.ClassJob.GameData.ClassJobParent.Value!.Name, 0);
         }
 
-        private void DrawConfigUI()
+        private static List<string> GrandCompanies = new() {"No GC", "Maelstrom", "Twin Adder", "Immortal Flames"};
+        
+        public unsafe string GetGrandCompany()
         {
-            WindowSystem.GetWindow("Configuration")!.IsOpen = true;
-        }
-
-        public unsafe void SetMapMarker(MapLinkPayload map)
-        {
-            var instance = AgentMap.Instance();
-            if (instance != null)
-            {
-                instance->IsFlagMarkerSet = 0;
-                AgentMap.Instance()->SetFlagMapMarker(map.Map.TerritoryType.Row, map.Map.RowId, map.RawX / 1000.0f, map.RawY / 1000.0f);
-                instance->OpenMap(map.Map.RowId, map.Map.TerritoryType.Row, type: MapType.FlagMarker);
-            }
+            return GrandCompanies[UIState.Instance()->PlayerState.GrandCompany];
         }
         
-        private void PrintMonsterNote(HuntingData hunt)
+        // If square ever decides to change the Hunting Log~
+        private void WriteMonsterNote()
         {
+            var hunt = new HuntingData();
+            
             var monster = Data.GetExcelSheet<MonsterNote>()!;
             var mapSheet = Data.GetExcelSheet<Map>();
 
@@ -163,8 +126,10 @@ namespace Hunty
                 if (match.RowId == 0) continue;
                 try
                 {
-                    var name = match.Name.ToString().Split(" ")[0];
-
+                    var parts = match.Name.ToString().Split(" ");
+                    var name = string.Join(" ", parts.Take(parts.Length-1));
+                    if (name == "Order of the Twin Adder") name = "Twin Adder";
+                    
                     if (!hunt.Classes.ContainsKey(name))
                     {
                         hunt.Classes.Add(name, new HuntingRank());
@@ -174,18 +139,27 @@ namespace Hunty
                     foreach (var (target, count) in match.MonsterNoteTarget.Zip(match.Count))
                     {
                         if (target.Row == 0) continue;
-
+                        
                         var newMonster = new HuntingMonster();
                         var bNpc = target.Value!.BNpcName.Value!;
                         newMonster.Name = Helper.ToTitleCaseExtended(bNpc.Singular, bNpc.Article);
                         newMonster.Count = count;
+                        newMonster.Icon = (uint) target.Value.Icon;
                         
                         foreach (var placename in target.Value!.UnkData3)
                         {
                             var map = mapSheet.FirstOrDefault(row => row.PlaceName.Row == placename.PlaceNameZone);
                             if (map != null && map.TerritoryType.Row != 0)
                             {
-                                newMonster.Locations.Add(new HuntingMonsterLocation(map.TerritoryType.Row, map.RowId));
+                                var zone = mapSheet.FirstOrDefault(row => row.PlaceName.Row == placename.PlaceNameLocation);
+                                if (zone != null && zone.TerritoryType.Row != 0)
+                                {
+                                    newMonster.Locations.Add(new HuntingMonsterLocation(map.TerritoryType.Row, map.RowId, zone.TerritoryType.Row));
+                                }
+                                else
+                                {
+                                    newMonster.Locations.Add(new HuntingMonsterLocation(map.TerritoryType.Row, map.RowId));
+                                }
                             }
                         }
                         
@@ -193,15 +167,14 @@ namespace Hunty
                     }
                     
                     tencounter++;
-                    if (tencounter % 10 == 0)
+                    if (tencounter % 50 == 0)
+                    {
+                        index = 0;
+                    } 
+                    else if (tencounter % 10 == 0)
                     {
                         index++;
                         hunt.Classes[name].Monsters.Add(new List<HuntingMonster>());
-                    }
-                    if (tencounter == 50)
-                    {
-                        tencounter = 0;
-                        index = 0;
                     }
                 }
                 catch (Exception e)
@@ -209,28 +182,13 @@ namespace Hunty
                     PluginLog.Error(e.Message);
                 }
             }
-        }  
-        
-        private void PrintTerris()
-        {
-            var mapSheet = Data.GetExcelSheet<TerritoryType>();
-            var contentSheet = Data.GetExcelSheet<ContentFinderCondition>()!;
-            foreach (var match in mapSheet)
-            {
-                if (match.Map.IsValueCreated && match.Map.Value!.PlaceName.Value!.Name != "")
-                {
-                    if (match.RowId == 0) continue;
-                    PluginLog.Information("---------------");
-                    PluginLog.Information(match.Map.Value!.PlaceName.Value!.Name);
-                    PluginLog.Information($"TerriID: {match.RowId}");
-                    PluginLog.Information($"MapID: {match.Map.Row}");
-
-                    var content = contentSheet.FirstOrDefault(x => x.TerritoryType.Row == match.RowId);
-                    if (content == null) continue;
-                    if (Helper.ToTitleCaseExtended(content.Name, 0) == "") continue;
-                    PluginLog.Information($"Duty: {Helper.ToTitleCaseExtended(content.Name, 0)}");
-                }
-            }
-        }        
+            
+            var l = JsonConvert.SerializeObject(hunt, new JsonSerializerSettings { Formatting = Formatting.Indented,});
+            
+            var path = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "monsters.json");
+            PluginLog.Information($"Writing monster json");
+            PluginLog.Information(path);
+            File.WriteAllText(path, l);
+        }
     }
 }

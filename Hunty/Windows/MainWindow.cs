@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
+using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
 
@@ -8,14 +11,25 @@ namespace Hunty.Windows;
 public class MainWindow : Window, IDisposable
 {
     private Plugin Plugin;
-    private int selectedSpell = 1; // 0 is the first learned blu skill
-    private static Vector2 size = new(80, 80);
+    private int selectedClass = 0;
+    private int selectedRank = 0;
+    private int selectedArea = 0;
 
-    public MainWindow(Plugin plugin) : base("Hunty", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
+    private bool openGrandCompany = false;
+    
+    private string currentJob = "";
+    private string currentGC = "";
+    
+    private Dictionary<string, List<HuntingMonster>> currentAreas = new();
+    
+    private static Vector2 size = new(40, 40);
+    private const ImGuiWindowFlags flags = ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
+
+    public MainWindow(Plugin plugin) : base("Hunty")
     {
         SizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = new Vector2(370, 500),
+            MinimumSize = new Vector2(600, 450),
             MaximumSize = new Vector2(float.MaxValue, float.MaxValue)
         };
             
@@ -26,109 +40,150 @@ public class MainWindow : Window, IDisposable
 
     public override void Draw()
     {
-        foreach (var (key, value) in Plugin.HuntingData.Classes)
+        var oldRank = selectedRank;
+        var oldClass = selectedClass;
+
+        HuntingRank selClass;
+        var ok = Plugin.HuntingData.Classes.TryGetValue(currentJob, out selClass);
+        if (!openGrandCompany && !ok)
         {
-            ImGui.TextUnformatted(key);
-            ImGui.Indent();
-            foreach (var monsters in value.Monsters)
-            {
-                ImGui.TextUnformatted("Rank:");
-                ImGui.Indent();
-                foreach (var monster in monsters)
-                {
-                    ImGui.TextUnformatted(monster.Name);
-                    ImGui.TextUnformatted(monster.Count.ToString());
-                }
-                ImGui.Unindent();
-            }
-            
-            ImGui.Unindent();
+            var keyList = Plugin.HuntingData.Classes.Keys.ToArray()[..^3];
+            ImGui.Combo("##classSelector", ref selectedClass, keyList, keyList.Length);
+            DrawArrows(ref selectedClass, keyList.Length, 0);
+
+            selClass = Plugin.HuntingData.Classes[keyList[selectedClass]];
+        }
+        else if (openGrandCompany && Plugin.HuntingData.Classes.TryGetValue(currentGC, out selClass))
+        {
+            ImGui.TextUnformatted(currentGC);
+        }
+        else
+        {
+            ImGui.TextUnformatted(currentJob);
         }
         
+        var spacing = ImGui.GetScrollMaxY() == 0 ? 80.0f : 95.0f;
+        ImGui.SameLine(ImGui.GetWindowWidth() - spacing);
+
+        if (!openGrandCompany)
+        {
+            if (ImGui.Button(currentGC))
+            {
+                openGrandCompany = true;
+                Defaults();
+                return;
+            }
+        }
+        else
+        {
+            if (ImGui.Button(currentJob))
+            {
+                openGrandCompany = false;
+                Defaults();
+                return;
+            }
+        }
         
-        // var keyList = Sources.Keys.ToList();
-        // var stringList = Sources.Select(x => $"{x.Key} - {x.Value.Name}").ToArray();
-        // ImGui.Combo("##spellSelector", ref selectedSpell, stringList, stringList.Length);
-        //
-        // ImGui.SameLine();
-        // if (selectedSpell == 0) ImGui.BeginDisabled();
-        // if (Dalamud.Interface.Components.ImGuiComponents.IconButton(0, FontAwesomeIcon.ArrowLeft)) selectedSpell--;
-        // if (selectedSpell == 0) ImGui.EndDisabled();
-        //
-        // ImGui.SameLine();
-        // if (selectedSpell + 1 == stringList.Length) ImGui.BeginDisabled();
-        // if (Dalamud.Interface.Components.ImGuiComponents.IconButton(1, FontAwesomeIcon.ArrowRight)) selectedSpell++;
-        // if (selectedSpell + 1 == stringList.Length) ImGui.EndDisabled();
-        //
-        // ImGuiHelpers.ScaledDummy(10);
-        // ImGui.Separator();
-        // ImGuiHelpers.ScaledDummy(5);
-        //
-        // if (Sources.Any())
-        // {
-        //     var spell = Sources[keyList[selectedSpell]];
-        //     ImGuiHelpers.ScaledDummy(10);
-        //     
-        //     ImGui.BeginChild("Content", new Vector2(0, -30), false, 0);
-        //     if (spell.Source.Type != RegionType.Buy)
-        //     {
-        //         ImGui.TextUnformatted($"Min Lvl: {spell.Source.DutyMinLevel}");
-        //     }
-        //     if (spell.Source.Info != "")
-        //     {
-        //         ImGui.TextUnformatted($"{(spell.Source.Type != RegionType.Buy ? "Mob" : "Info")}: {spell.Source.Info}");
-        //     }
-        //     if (spell.Source.TerritoryType != null)
-        //     {
-        //         ImGui.TextUnformatted(!spell.Source.IsDuty
-        //             ? $"Region: {spell.Source.PlaceName}"
-        //             : $"Duty: {spell.Source.DutyName}");
-        //     }
-        //     if (spell.Source.MapLink != null)
-        //     {
-        //         if (ImGui.Selectable($"Coords: {spell.Source.MapLink.CoordinateString}##mapCoords"))
-        //         {
-        //             Plugin.SetMapMarker(spell.Source.MapLink);
-        //         }
-        //     }
-        //
-        //     if (spell.Source.TerritoryType != null && spell.Source.Type != RegionType.Buy)
-        //     {
-        //         var combos = Sources.Where(x => x.Key != keyList[selectedSpell] && spell.Source.CompareTerritory(x.Value.Source)).ToArray();
-        //         if (combos.Any())
-        //         {
-        //             ImGuiHelpers.ScaledDummy(5);
-        //             ImGui.Separator();
-        //             ImGuiHelpers.ScaledDummy(5);
-        //             ImGui.TextUnformatted("Same location:");
-        //             foreach (var (key, value) in combos)
-        //             {
-        //                 if (ImGui.Selectable($"{key} - {value.Name}"))
-        //                 {
-        //                     selectedSpell = keyList.FindIndex(x => x == key);
-        //                 }
-        //             }
-        //         }
-        //     }
-        //
-        //     if (spell.Source.AcquiringTips != "")
-        //     {
-        //         ImGuiHelpers.ScaledDummy(5);
-        //         ImGui.Separator();
-        //         ImGuiHelpers.ScaledDummy(5);
-        //         ImGui.TextUnformatted($"Acquisition Tips:");
-        //         foreach (var tip in spell.Source.AcquiringTips.Split("\n"))
-        //         {
-        //             ImGui.Bullet();
-        //             ImGui.PushTextWrapPos();
-        //             ImGui.TextUnformatted(tip);
-        //         }
-        //     }
-        //     ImGui.EndChild();
-        //     
-        //     ImGui.BeginChild("BottomBar", new Vector2(0,0), false, 0);
-        //     ImGui.TextDisabled("Data sourced from ffxiv.consolegameswiki.com");
-        //     ImGui.EndChild();
-        // }
+        ImGuiHelpers.ScaledDummy(5);
+        ImGui.Separator();
+        ImGuiHelpers.ScaledDummy(5);
+        
+        var rankList = selClass!.Monsters.Select((_, i) => $"Rank {i+1}").ToArray();
+        ImGui.Combo("##rankSelector", ref selectedRank, rankList, rankList.Length);
+        DrawArrows(ref selectedRank, rankList.Length, 2);
+        
+        var selRank = selClass.Monsters[selectedRank];
+
+        if (selectedRank != oldRank || selectedClass != oldClass || currentAreas.Count == 0)
+        {
+            currentAreas.Clear();
+            selectedArea = 0;
+
+            currentJob = Plugin.GetLocalPlayerJob();
+            currentGC = Plugin.GetGrandCompany();
+            
+            foreach (var m in selRank)
+            {
+                var location = m.Locations[0];
+                if (location.Name == string.Empty) location.InitLocation();
+
+                var key = !location.IsDuty ? location.Name : location.DutyName;
+                if (!currentAreas.ContainsKey(key)) currentAreas.Add(key, new List<HuntingMonster>());
+                currentAreas[key].Add(m);
+            }
+        }
+        
+        var areaList = currentAreas.Keys.ToArray();
+        ImGui.Combo("##areaSelector", ref selectedArea, areaList, areaList.Length);
+        DrawArrows(ref selectedArea, areaList.Length, 4);
+        
+        ImGuiHelpers.ScaledDummy(10);
+        
+        var monster = currentAreas[areaList[selectedArea]];
+
+        var isDuty = monster[0].Locations[0].IsDuty;
+        if (ImGui.BeginTable("##monsterTable", !isDuty ? 4 : 3))
+        {
+            ImGui.TableSetupColumn("##icon", ImGuiTableColumnFlags.None, 0.2f);
+            ImGui.TableSetupColumn("Monster");
+            ImGui.TableSetupColumn("Needed", ImGuiTableColumnFlags.None, 0.4f);
+            if (!isDuty) ImGui.TableSetupColumn("Coords", ImGuiTableColumnFlags.None, 1.5f);
+            
+            ImGui.TableHeadersRow();
+            foreach (var m in monster)
+            {
+                ImGui.TableNextColumn();
+                DrawIcon(m.Icon);
+                
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted(m.Name);
+                
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted(m.Count.ToString());
+
+                if (!isDuty)
+                {
+                    ImGui.TableNextColumn();
+                    if (ImGui.Selectable($"{m.GetLocation().Name} {m.GetLocation().MapLink.CoordinateString}"))
+                    {
+                        Plugin.SetMapMarker(m.GetLocation().MapLink);
+                    }
+                }
+
+                ImGui.TableNextRow();
+            }
+        }
+        ImGui.EndTable();
+    }
+
+    public static void DrawArrows(ref int selected, int length, int id)
+    {
+        ImGui.SameLine();
+        if (selected == 0) ImGui.BeginDisabled();
+        if (Dalamud.Interface.Components.ImGuiComponents.IconButton(id, FontAwesomeIcon.ArrowLeft)) selected--;
+        if (selected == 0) ImGui.EndDisabled();
+        
+        ImGui.SameLine();
+        if (selected + 1 == length) ImGui.BeginDisabled();
+        if (Dalamud.Interface.Components.ImGuiComponents.IconButton(id+1, FontAwesomeIcon.ArrowRight)) selected++;
+        if (selected + 1 == length) ImGui.EndDisabled();
+    }
+
+    public void Defaults()
+    {
+        currentJob = Plugin.GetLocalPlayerJob();
+        currentGC = Plugin.GetGrandCompany();
+        
+        selectedClass = 0;
+        selectedRank = 0;
+        selectedArea = 0;
+        
+        currentAreas.Clear();
+    }
+    
+    public static void DrawIcon(uint iconId)
+    {
+        var texture = TexturesCache.Instance!.GetTextureFromIconId(iconId);
+        ImGui.Image(texture.ImGuiHandle, size);
     }
 }
