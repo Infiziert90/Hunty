@@ -61,9 +61,10 @@ public class MainWindow : Window, IDisposable
         {
             ImGui.TextUnformatted(currentJob);
         }
-        
-        var spacing = ImGui.GetScrollMaxY() == 0 ? 80.0f : 95.0f;
-        ImGui.SameLine(ImGui.GetWindowWidth() - spacing);
+
+        var textLength = ImGui.CalcTextSize(openGrandCompany ? currentJob : currentGC).X;
+        var scrollBarSpacing = ImGui.GetScrollMaxY() == 0 ? 0.0f : 15.0f;
+        ImGui.SameLine(ImGui.GetWindowWidth() - 15.0f - textLength - scrollBarSpacing);
 
         if (!openGrandCompany)
         {
