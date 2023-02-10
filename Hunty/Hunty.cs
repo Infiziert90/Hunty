@@ -35,9 +35,9 @@ namespace Hunty
         public WindowSystem WindowSystem = new("Hunty");
         public ClientState ClientState = null!;
         public MainWindow MainWindow = null!;
-
-        public HuntingData HuntingData = null!;
         
+        public HuntingData HuntingData = null!;
+        private uint CurrentJobId = 0;
         
         public Plugin(
             [RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
@@ -80,10 +80,27 @@ namespace Hunty
                 PluginLog.Error("There was a problem building the HuntingData.");
                 PluginLog.Error(e.Message);
             }
+
+            Framework.Update += CheckJobChange;
         }
 
+        public void CheckJobChange(Framework framework)
+        {
+            if (ClientState.LocalPlayer == null) return;
+            var job = ClientState.LocalPlayer.ClassJob.GameData!.ClassJobParent;
+
+            if (job.Row != CurrentJobId) {
+                CurrentJobId = job.Row;
+                var name = Helper.ToTitleCaseExtended(job.Value!.Name, 0);
+                PluginLog.Debug($"Job switch: {name}");
+                MainWindow.SetJobAndGc(name, GetGrandCompany());
+            }
+        }
+        
         public void Dispose()
         {
+            Framework.Update -= CheckJobChange;
+            
             TexturesCache.Instance?.Dispose();
             
             MainWindow.Dispose();

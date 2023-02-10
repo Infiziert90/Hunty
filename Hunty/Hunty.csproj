@@ -35,7 +35,6 @@
 	
 	<ItemGroup>
         <PackageReference Include="DalamudPackager" Version="2.1.10" />
-        <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
     </ItemGroup>
 
 
@@ -66,6 +65,10 @@
 		</Reference>
 		<Reference Include="FFXIVClientStructs">
 			<HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="Newtonsoft.Json">
+			<HintPath>$(DalamudLibPath)Newtonsoft.Json.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
 	</ItemGroup>

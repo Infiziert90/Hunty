@@ -99,9 +99,6 @@ public class MainWindow : Window, IDisposable
         {
             currentAreas.Clear();
             selectedArea = 0;
-
-            currentJob = Plugin.GetLocalPlayerJob();
-            currentGC = Plugin.GetGrandCompany();
             
             foreach (var m in selRank)
             {
@@ -172,9 +169,6 @@ public class MainWindow : Window, IDisposable
 
     public void Defaults()
     {
-        currentJob = Plugin.GetLocalPlayerJob();
-        currentGC = Plugin.GetGrandCompany();
-        
         selectedClass = 0;
         selectedRank = 0;
         selectedArea = 0;
@@ -186,5 +180,11 @@ public class MainWindow : Window, IDisposable
     {
         var texture = TexturesCache.Instance!.GetTextureFromIconId(iconId);
         ImGui.Image(texture.ImGuiHandle, size);
+    }
+
+    public void SetJobAndGc(string job, string gc)
+    {
+        currentJob = job;
+        currentGC = gc;
     }
 }
