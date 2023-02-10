@@ -66,11 +66,11 @@ namespace Hunty
             PluginInterface.UiBuilder.Draw += DrawUI;
             
             TexturesCache.Initialize();
-            
+
             try
             {
                 PluginLog.Debug("Loading Monsters.");
-                
+
                 var path = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "monsters.json");
                 var jsonString = File.ReadAllText(path);
                 HuntingData = JsonConvert.DeserializeObject<HuntingData>(jsonString);
@@ -80,7 +80,8 @@ namespace Hunty
                 PluginLog.Error("There was a problem building the HuntingData.");
                 PluginLog.Error(e.Message);
             }
-
+            
+            MainWindow.Initialize();
             Framework.Update += CheckJobChange;
         }
 
@@ -147,10 +148,10 @@ namespace Hunty
                     var name = string.Join(" ", parts.Take(parts.Length-1));
                     if (name == "Order of the Twin Adder") name = "Twin Adder";
                     
-                    if (!hunt.Classes.ContainsKey(name))
+                    if (!hunt.Jobs.ContainsKey(name))
                     {
-                        hunt.Classes.Add(name, new HuntingRank());
-                        hunt.Classes[name].Monsters.Add(new List<HuntingMonster>());
+                        hunt.Jobs.Add(name, new HuntingRank());
+                        hunt.Jobs[name].Monsters.Add(new List<HuntingMonster>());
                     }
                     
                     foreach (var (target, count) in match.MonsterNoteTarget.Zip(match.Count))
@@ -180,7 +181,7 @@ namespace Hunty
                             }
                         }
                         
-                        hunt.Classes[name].Monsters[index].Add(newMonster);
+                        hunt.Jobs[name].Monsters[index].Add(newMonster);
                     }
                     
                     tencounter++;
@@ -191,7 +192,7 @@ namespace Hunty
                     else if (tencounter % 10 == 0)
                     {
                         index++;
-                        hunt.Classes[name].Monsters.Add(new List<HuntingMonster>());
+                        hunt.Jobs[name].Monsters.Add(new List<HuntingMonster>());
                     }
                 }
                 catch (Exception e)

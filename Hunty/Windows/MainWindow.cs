@@ -24,7 +24,9 @@ public class MainWindow : Window, IDisposable
     
     private static Vector2 size = new(40, 40);
     private const ImGuiWindowFlags flags = ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
-
+    
+    private static string[] jobs;
+    
     public MainWindow(Plugin plugin) : base("Hunty")
     {
         SizeConstraints = new WindowSizeConstraints
@@ -36,6 +38,11 @@ public class MainWindow : Window, IDisposable
         Plugin = plugin;
     }
 
+    public void Initialize()
+    {
+        jobs = Plugin.HuntingData.Jobs.Keys.ToArray()[..^3];
+    }
+    
     public void Dispose() { }
 
     public override void Draw()
@@ -44,16 +51,15 @@ public class MainWindow : Window, IDisposable
         var oldClass = selectedClass;
 
         HuntingRank selClass;
-        var ok = Plugin.HuntingData.Classes.TryGetValue(currentJob, out selClass);
+        var ok = Plugin.HuntingData.Jobs.TryGetValue(currentJob, out selClass);
         if (!openGrandCompany && !ok)
         {
-            var keyList = Plugin.HuntingData.Classes.Keys.ToArray()[..^3];
-            ImGui.Combo("##classSelector", ref selectedClass, keyList, keyList.Length);
-            DrawArrows(ref selectedClass, keyList.Length, 0);
+            ImGui.Combo("##classSelector", ref selectedClass, jobs, jobs.Length);
+            DrawArrows(ref selectedClass, jobs.Length, 0);
 
-            selClass = Plugin.HuntingData.Classes[keyList[selectedClass]];
+            selClass = Plugin.HuntingData.Jobs[jobs[selectedClass]];
         }
-        else if (openGrandCompany && Plugin.HuntingData.Classes.TryGetValue(currentGC, out selClass))
+        else if (openGrandCompany && Plugin.HuntingData.Jobs.TryGetValue(currentGC, out selClass))
         {
             ImGui.TextUnformatted(currentGC);
         }
@@ -92,15 +98,13 @@ public class MainWindow : Window, IDisposable
         var rankList = selClass!.Monsters.Select((_, i) => $"Rank {i+1}").ToArray();
         ImGui.Combo("##rankSelector", ref selectedRank, rankList, rankList.Length);
         DrawArrows(ref selectedRank, rankList.Length, 2);
-        
-        var selRank = selClass.Monsters[selectedRank];
 
-        if (selectedRank != oldRank || selectedClass != oldClass || currentAreas.Count == 0)
+        if (selectedRank != oldRank || selectedClass != oldClass || !currentAreas.Any())
         {
             currentAreas.Clear();
             selectedArea = 0;
             
-            foreach (var m in selRank)
+            foreach (var m in selClass.Monsters[selectedRank])
             {
                 var location = m.Locations[0];
                 if (location.Name == string.Empty) location.InitLocation();
@@ -186,5 +190,11 @@ public class MainWindow : Window, IDisposable
     {
         currentJob = job;
         currentGC = gc;
+
+        if (Plugin.HuntingData.Jobs.ContainsKey(job))
+        {
+            Defaults(); // reset to prevent null exceptions with different list lengths
+            selectedClass = Array.IndexOf(jobs, job);
+        }
     }
 }

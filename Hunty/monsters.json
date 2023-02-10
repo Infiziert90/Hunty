@@ -1,5 +1,5 @@
 {
-  "Classes": {
+  "Jobs": {
     "Gladiator": {
       "Monsters": [
         [
@@ -1416,8 +1416,8 @@
                 "Terri": 137,
                 "Map": 17,
                 "Zone": 0,
-                "xCoord": 13.0,
-                "yCoord": 19.0
+                "xCoord": 28.0,
+                "yCoord": 35.0
               }
             ]
           },
@@ -1430,8 +1430,8 @@
                 "Terri": 148,
                 "Map": 4,
                 "Zone": 0,
-                "xCoord": 18.0,
-                "yCoord": 30.0
+                "xCoord": 13.0,
+                "yCoord": 19.0
               }
             ]
           },
@@ -1444,8 +1444,8 @@
                 "Terri": 153,
                 "Map": 6,
                 "Zone": 0,
-                "xCoord": 28.0,
-                "yCoord": 35.0
+                "xCoord": 18.0,
+                "yCoord": 30.0
               }
             ]
           }
@@ -1517,7 +1517,7 @@
                 "Map": 17,
                 "Zone": 0,
                 "xCoord": 17.0,
-                "yCoord": 28.0
+                "yCoord": 31.0
               }
             ]
           },
@@ -1530,8 +1530,8 @@
                 "Terri": 137,
                 "Map": 17,
                 "Zone": 0,
-                "xCoord": 17.0,
-                "yCoord": 31.0
+                "xCoord": 19.0,
+                "yCoord": 28.0
               }
             ]
           },
@@ -3308,8 +3308,8 @@
                 "Terri": 146,
                 "Map": 23,
                 "Zone": 0,
-                "xCoord": 19.0,
-                "yCoord": 34.0
+                "xCoord": 25.0,
+                "yCoord": 28.0
               }
             ]
           },
@@ -3322,8 +3322,8 @@
                 "Terri": 146,
                 "Map": 23,
                 "Zone": 0,
-                "xCoord": 25.0,
-                "yCoord": 38.0
+                "xCoord": 19.0,
+                "yCoord": 34.0
               }
             ]
           },
@@ -4261,7 +4261,7 @@
                 "Map": 23,
                 "Zone": 0,
                 "xCoord": 19.0,
-                "yCoord": 35.0
+                "yCoord": 34.0
               }
             ]
           },
@@ -4302,7 +4302,7 @@
                 "Terri": 137,
                 "Map": 17,
                 "Zone": 0,
-                "xCoord": 18.0,
+                "xCoord": 19.0,
                 "yCoord": 28.0
               }
             ]
@@ -6080,7 +6080,7 @@
                 "Map": 23,
                 "Zone": 0,
                 "xCoord": 19.0,
-                "yCoord": 35.0
+                "yCoord": 34.0
               }
             ]
           },

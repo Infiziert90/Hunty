@@ -10,7 +10,7 @@ namespace Hunty;
 [Serializable]
 public class HuntingData
 {
-    public Dictionary<string, HuntingRank> Classes { get; set; } = new();
+    public Dictionary<string, HuntingRank> Jobs { get; set; } = new();
 }
 
 [Serializable]
