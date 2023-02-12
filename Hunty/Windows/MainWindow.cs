@@ -68,13 +68,13 @@ public class MainWindow : Window, IDisposable
             ImGui.TextUnformatted(currentJob);
         }
 
-        var textLength = ImGui.CalcTextSize(openGrandCompany ? currentJob : currentGC).X;
+        var textLength = ImGui.CalcTextSize(openGrandCompany ? "Job" : "Grand Company").X;
         var scrollBarSpacing = ImGui.GetScrollMaxY() == 0 ? 0.0f : 15.0f;
         ImGui.SameLine(ImGui.GetWindowWidth() - 15.0f - textLength - scrollBarSpacing);
 
         if (!openGrandCompany)
         {
-            if (ImGui.Button(currentGC))
+            if (ImGui.Button("Grand Company"))
             {
                 openGrandCompany = true;
                 Defaults();
@@ -83,7 +83,7 @@ public class MainWindow : Window, IDisposable
         }
         else
         {
-            if (ImGui.Button(currentJob))
+            if (ImGui.Button("Jobs"))
             {
                 openGrandCompany = false;
                 Defaults();
@@ -141,7 +141,28 @@ public class MainWindow : Window, IDisposable
                 ImGui.TextUnformatted(m.Name);
                 
                 ImGui.TableNextColumn();
-                ImGui.TextUnformatted(m.Count.ToString());
+                var killed = 0;
+                var done = false;
+                var progress = Plugin.Configuration.Progress.GetOrCreate(Plugin.LocalContentID);
+                if (progress.TryGetValue(!openGrandCompany ? jobs[selectedClass] : currentGC, out var job))
+                {
+                    if (job.TryGetValue(m.Name, out var mob))
+                    {
+                        killed = mob.Killed;
+                        done = mob.Done;
+                    }
+                }
+
+                if (done)
+                {
+                    ImGui.PushFont(UiBuilder.IconFont);
+                    ImGui.TextUnformatted(FontAwesomeIcon.Check.ToIconString());
+                    ImGui.PopFont();
+                }
+                else
+                {
+                    ImGui.TextUnformatted($"{killed} / {m.Count.ToString()}");
+                }
 
                 if (!isDuty)
                 {

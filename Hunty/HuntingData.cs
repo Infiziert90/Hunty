@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Lumina.Excel.GeneratedSheets;
 using Newtonsoft.Json;
+using static Hunty.Helper;
 
 namespace Hunty;
 
@@ -68,7 +70,7 @@ public class HuntingMonsterLocation
         var mapSheet = Plugin.Data.GetExcelSheet<TerritoryType>()!.GetRow(Terri)!;
         var contentSheet = Plugin.Data.GetExcelSheet<ContentFinderCondition>()!;
 
-        Name = Helper.ToTitleCaseExtended(mapSheet.Map.Value!.PlaceName.Value!.Name, 0);
+        Name = ToTitleCaseExtended(mapSheet.Map.Value!.PlaceName.Value!.Name, 0);
         MapLink = new MapLinkPayload(Terri, Map, xCoord, yCoord);
 
         if (Zone == 0) return;
@@ -77,8 +79,26 @@ public class HuntingMonsterLocation
         var content = contentSheet.FirstOrDefault(x => x.TerritoryType.Row == zoneSheet.RowId);
         if (content == null) return;
         
-        if (Helper.ToTitleCaseExtended(content.Name, 0) == "") return;
+        if (ToTitleCaseExtended(content.Name, 0) == "") return;
         IsDuty = true;
-        DutyName = Helper.ToTitleCaseExtended(content.Name, 0);
+        DutyName = ToTitleCaseExtended(content.Name, 0);
+    }
+}
+
+public class NewProgressEntry
+{
+    public readonly string Mob;
+    public readonly string Job;
+    
+    public readonly int Killed;
+    public bool Done = false;
+
+    public NewProgressEntry(GroupCollection groups)
+    {
+        Mob = groups.ContainsKey("mob") ? ToTitleCaseExtended(groups["mob"]) : "";
+        Job = groups.ContainsKey("job") ? ToTitleCaseExtended(groups["job"]) : "";
+        Killed = groups.ContainsKey("killed") ? Parse(groups["killed"]) : -1;
+
+        if (Job == "") Done = true;
     }
 }

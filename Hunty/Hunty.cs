@@ -11,9 +11,12 @@ using Hunty.Windows;
 using Dalamud.Data;
 using Dalamud.Game.ClientState;
 using Dalamud.Game.Command;
+using Dalamud.Game.Text;
+using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Interface.Windowing;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using Hunty.Logic;
 using Lumina.Excel.GeneratedSheets;
 using Newtonsoft.Json;
 using Map = Lumina.Excel.GeneratedSheets.Map;
@@ -32,25 +35,31 @@ namespace Hunty
         private CommandManager CommandManager { get; init; }
         private Framework Framework { get; init; }
         private GameGui GameGui { get; init; }
+        private ChatGui Chat { get; init; }
         public WindowSystem WindowSystem = new("Hunty");
         public ClientState ClientState = null!;
         public MainWindow MainWindow = null!;
+        public ulong LocalContentID = 0;
         
         public HuntingData HuntingData = null!;
-        private uint CurrentJobId = 0;
+        private ClassJob CurrentJob = new();
+
+        private static List<string> GrandCompanies = new() {"No GC", "Maelstrom", "Twin Adder", "Immortal Flames"};
         
         public Plugin(
             [RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
             [RequiredVersion("1.0")] Framework framework,
             [RequiredVersion("1.0")] GameGui gameGui,
             [RequiredVersion("1.0")] CommandManager commandManager,
-            [RequiredVersion("1.0")] ClientState clientState)
+            [RequiredVersion("1.0")] ClientState clientState,
+            [RequiredVersion("1.0")] ChatGui chat)
         {   
             PluginInterface = pluginInterface;
             Framework = framework;
             GameGui = gameGui;
             CommandManager = commandManager;
             ClientState = clientState;
+            Chat = chat;
             
             Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
             Configuration.Initialize(PluginInterface);
@@ -82,16 +91,18 @@ namespace Hunty
             }
             
             MainWindow.Initialize();
+            Chat.ChatMessage += OnChatMessage;
             Framework.Update += CheckJobChange;
         }
 
-        public void CheckJobChange(Framework framework)
+        private void CheckJobChange(Framework framework)
         {
             if (ClientState.LocalPlayer == null) return;
+            LocalContentID  = ClientState.LocalContentId;
             var job = ClientState.LocalPlayer.ClassJob.GameData!.ClassJobParent;
 
-            if (job.Row != CurrentJobId) {
-                CurrentJobId = job.Row;
+            if (job.Row != CurrentJob.RowId) {
+                CurrentJob = job.Value;
                 var name = Helper.ToTitleCaseExtended(job.Value!.Name, 0);
                 PluginLog.Debug($"Job switch: {name}");
                 MainWindow.SetJobAndGc(name, GetGrandCompany());
@@ -100,6 +111,7 @@ namespace Hunty
         
         public void Dispose()
         {
+            Chat.ChatMessage -= OnChatMessage;
             Framework.Update -= CheckJobChange;
             
             TexturesCache.Instance?.Dispose();
@@ -113,23 +125,36 @@ namespace Hunty
         private void DrawUI() => WindowSystem.Draw();
         
         public void SetMapMarker(MapLinkPayload map) => GameGui.OpenMapWithMapLink(map);
+        public unsafe string GetGrandCompany() => GrandCompanies[UIState.Instance()->PlayerState.GrandCompany];
         
-        public string GetLocalPlayerJob()
+        private void OnChatMessage(XivChatType type, uint id, ref SeString sender, ref SeString message, ref bool handled)
         {
-            var local = ClientState.LocalPlayer;
-            if (local == null || local.ClassJob.GameData == null) 
-                return "";
-            return Helper.ToTitleCaseExtended(local.ClassJob.GameData.ClassJobParent.Value!.Name, 0);
-        }
+            if (type != XivChatType.SystemMessage) return;
+            
+            PluginLog.Debug($"Content: {message}");
+            PluginLog.Debug($"Language: {ClientState.ClientLanguage}");
 
-        private static List<string> GrandCompanies = new() {"No GC", "Maelstrom", "Twin Adder", "Immortal Flames"};
+            var m = Reg.Match(message.ToString(), ClientState.ClientLanguage);
+            if (!m.Success) return;
 
-        public unsafe string GetGrandCompany()
-        {
-            return GrandCompanies[UIState.Instance()->PlayerState.GrandCompany];
+            var entry = new NewProgressEntry(m.Groups);
+            var name = entry.Job != "" ? entry.Job : Helper.ToTitleCaseExtended(CurrentJob.Name, 0);
+            
+            if (GetGrandCompany() != "No GC")
+            {
+                if (HuntingData.Jobs[GetGrandCompany()].Monsters.Any(monsters => monsters.Any(monster => monster.Name == entry.Mob))) 
+                    name = GetGrandCompany();
+            }
+
+            var progress = Configuration.Progress.GetOrCreate(LocalContentID).GetOrCreate(name).GetOrCreate(entry.Mob);
+            progress.Done = entry.Done;
+            progress.Killed = entry.Killed;
+            
+            Configuration.Save();
         }
         
         // If square ever decides to change the Hunting Log~
+        #region internal
         private void WriteMonsterNote()
         {
             var hunt = new HuntingData();
@@ -208,5 +233,6 @@ namespace Hunty
             PluginLog.Information(path);
             File.WriteAllText(path, l);
         }
+        #endregion
     }
 }
