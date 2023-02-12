@@ -147,8 +147,8 @@ namespace Hunty
             }
 
             var progress = Configuration.Progress.GetOrCreate(LocalContentID).GetOrCreate(name).GetOrCreate(entry.Mob);
-            progress.Done = entry.Done;
-            progress.Killed = entry.Killed;
+            if (entry.Done) progress.Done = entry.Done;
+            if (entry.Killed > progress.Killed) progress.Killed = entry.Killed;
             
             Configuration.Save();
         }
