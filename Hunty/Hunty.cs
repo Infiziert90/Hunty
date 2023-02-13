@@ -11,12 +11,12 @@ using Hunty.Windows;
 using Dalamud.Data;
 using Dalamud.Game.ClientState;
 using Dalamud.Game.Command;
-using Dalamud.Game.Text;
-using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Interface.Windowing;
+using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
-using Hunty.Logic;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using Hunty.Data;
 using Lumina.Excel.GeneratedSheets;
 using Newtonsoft.Json;
 using Map = Lumina.Excel.GeneratedSheets.Map;
@@ -31,20 +31,16 @@ namespace Hunty
         private const string CommandName = "/hunty";
         
         public static DalamudPluginInterface PluginInterface { get; private set; } = null!;
-        public Configuration Configuration { get; init; }
+        private Configuration Configuration { get; init; }
         private CommandManager CommandManager { get; init; }
         private Framework Framework { get; init; }
         private GameGui GameGui { get; init; }
-        private ChatGui Chat { get; init; }
-        public WindowSystem WindowSystem = new("Hunty");
-        public ClientState ClientState = null!;
-        public MainWindow MainWindow = null!;
-        public ulong LocalContentID = 0;
+        private WindowSystem WindowSystem = new("Hunty");
+        private ClientState ClientState = null!;
+        private MainWindow MainWindow = null!;
         
-        public HuntingData HuntingData = null!;
-        private ClassJob CurrentJob = new();
-
-        private static List<string> GrandCompanies = new() {"No GC", "Maelstrom", "Twin Adder", "Immortal Flames"};
+        public readonly HuntingData HuntingData = null!;
+        private ClassJob currentJob = new();
         
         public Plugin(
             [RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
@@ -52,14 +48,13 @@ namespace Hunty
             [RequiredVersion("1.0")] GameGui gameGui,
             [RequiredVersion("1.0")] CommandManager commandManager,
             [RequiredVersion("1.0")] ClientState clientState,
-            [RequiredVersion("1.0")] ChatGui chat)
+            [RequiredVersion("1.0")] SigScanner sigScanner)
         {   
             PluginInterface = pluginInterface;
             Framework = framework;
             GameGui = gameGui;
             CommandManager = commandManager;
             ClientState = clientState;
-            Chat = chat;
             
             Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
             Configuration.Initialize(PluginInterface);
@@ -75,7 +70,7 @@ namespace Hunty
             PluginInterface.UiBuilder.Draw += DrawUI;
             
             TexturesCache.Initialize();
-
+            
             try
             {
                 PluginLog.Debug("Loading Monsters.");
@@ -91,18 +86,27 @@ namespace Hunty
             }
             
             MainWindow.Initialize();
-            Chat.ChatMessage += OnChatMessage;
             Framework.Update += CheckJobChange;
+            ClientState.Login += OnLogin;
         }
+        
+        private void OnLogin(object? sender, EventArgs e)
+        {
+            if (ClientState.LocalPlayer == null) return;
+            currentJob = ClientState.LocalPlayer.ClassJob.GameData!.ClassJobParent.Value!;
 
+            var name = Helper.ToTitleCaseExtended(currentJob.Name, 0);
+            PluginLog.Debug($"Logging in on: {name}");
+            MainWindow.SetJobAndGc(name, GetGrandCompany());
+        }
+        
         private void CheckJobChange(Framework framework)
         {
             if (ClientState.LocalPlayer == null) return;
-            LocalContentID  = ClientState.LocalContentId;
             var job = ClientState.LocalPlayer.ClassJob.GameData!.ClassJobParent;
 
-            if (job.Row != CurrentJob.RowId) {
-                CurrentJob = job.Value;
+            if (job.Row != currentJob.RowId) {
+                currentJob = job.Value;
                 var name = Helper.ToTitleCaseExtended(job.Value!.Name, 0);
                 PluginLog.Debug($"Job switch: {name}");
                 MainWindow.SetJobAndGc(name, GetGrandCompany());
@@ -111,7 +115,6 @@ namespace Hunty
         
         public void Dispose()
         {
-            Chat.ChatMessage -= OnChatMessage;
             Framework.Update -= CheckJobChange;
             
             TexturesCache.Instance?.Dispose();
@@ -125,32 +128,43 @@ namespace Hunty
         private void DrawUI() => WindowSystem.Draw();
         
         public void SetMapMarker(MapLinkPayload map) => GameGui.OpenMapWithMapLink(map);
-        public unsafe string GetGrandCompany() => GrandCompanies[UIState.Instance()->PlayerState.GrandCompany];
-        
-        private void OnChatMessage(XivChatType type, uint id, ref SeString sender, ref SeString message, ref bool handled)
+        public unsafe void OpenDutyFinder(uint key) => AgentContentsFinder.Instance()->OpenRegularDuty(key);
+        public unsafe string GetGrandCompany() => StaticData.GrandCompanies[UIState.Instance()->PlayerState.GrandCompany];
+
+        public unsafe Dictionary<string, MonsterProgress> GetMemoryProgress(string job, int rank)
         {
-            if (type != XivChatType.SystemMessage) return;
+            var currentProgress = new Dictionary<string, MonsterProgress>();
             
-            PluginLog.Debug($"Content: {message}");
-            PluginLog.Debug($"Language: {ClientState.ClientLanguage}");
-
-            var m = Reg.Match(message.ToString(), ClientState.ClientLanguage);
-            if (!m.Success) return;
-
-            var entry = new NewProgressEntry(m.Groups);
-            var name = entry.Job != "" ? entry.Job : Helper.ToTitleCaseExtended(CurrentJob.Name, 0);
+            var huntingRank = HuntingData.JobRanks[job][rank];
+            var monsterNoteManager = MonsterNoteManager.Instance();
+            var jobMemory = monsterNoteManager->RankDataArraySpan[StaticData.JobInMemory(job)];
+            var progressRank = jobMemory.Rank;
             
-            if (GetGrandCompany() != "No GC")
+            if (progressRank > rank) // Rank is already finished, all monsters are done
             {
-                if (HuntingData.Jobs[GetGrandCompany()].Monsters.Any(monsters => monsters.Any(monster => monster.Name == entry.Mob))) 
-                    name = GetGrandCompany();
+                foreach (var monster in huntingRank.Tasks.SelectMany(a => a.Monsters))
+                    currentProgress.Add(monster.Name, new MonsterProgress(true));
+                
+            } 
+            else if (progressRank < rank) // Rank not yet reached, kills must be zero
+            {
+                foreach (var monster in huntingRank.Tasks.SelectMany(a => a.Monsters))
+                    currentProgress.Add(monster.Name, new MonsterProgress(0));
+            }
+            else
+            {
+                foreach (var (task, progress) in huntingRank.Tasks.Zip(jobMemory.RankDataArraySpan.ToArray()))
+                {
+                    foreach (var (monster, idx) in task.Monsters.Select((monster, i) => ( monster, i )))
+                    {
+                        var killed = progress.Counts[idx];
+                        currentProgress.Add(monster.Name, 
+                            killed == monster.Count ? new MonsterProgress(true) : new MonsterProgress(killed));
+                    }
+                }
             }
 
-            var progress = Configuration.Progress.GetOrCreate(LocalContentID).GetOrCreate(name).GetOrCreate(entry.Mob);
-            if (entry.Done) progress.Done = entry.Done;
-            if (entry.Killed > progress.Killed) progress.Killed = entry.Killed;
-            
-            Configuration.Save();
+            return currentProgress;
         }
         
         // If square ever decides to change the Hunting Log~
@@ -159,27 +173,30 @@ namespace Hunty
         {
             var hunt = new HuntingData();
             
-            var monster = Data.GetExcelSheet<MonsterNote>()!;
+            var monsterNotes = Data.GetExcelSheet<MonsterNote>()!;
             var mapSheet = Data.GetExcelSheet<Map>();
 
             var tencounter = 0;
             var index = 0;
-            foreach (var match in monster)
+            foreach (var task in monsterNotes)
             {
-                if (match.RowId == 0) continue;
+                if (task.RowId == 0) continue;
                 try
                 {
-                    var parts = match.Name.ToString().Split(" ");
+                    var parts = task.Name.ToString().Split(" ");
                     var name = string.Join(" ", parts.Take(parts.Length-1));
                     if (name == "Order of the Twin Adder") name = "Twin Adder";
                     
-                    if (!hunt.Jobs.ContainsKey(name))
+                    if (!hunt.JobRanks.ContainsKey(name))
                     {
-                        hunt.Jobs.Add(name, new HuntingRank());
-                        hunt.Jobs[name].Monsters.Add(new List<HuntingMonster>());
+                        hunt.JobRanks.Add(name, new List<HuntingRank>() {new HuntingRank()});
                     }
                     
-                    foreach (var (target, count) in match.MonsterNoteTarget.Zip(match.Count))
+                    var newTask = new HuntingTask
+                    {
+                        Name = task.Name.ToString()
+                    };
+                    foreach (var (target, count) in task.MonsterNoteTarget.Zip(task.Count))
                     {
                         if (target.Row == 0) continue;
                         
@@ -203,11 +220,15 @@ namespace Hunty
                                 {
                                     newMonster.Locations.Add(new HuntingMonsterLocation(map.TerritoryType.Row, map.RowId));
                                 }
+
+                                break;
                             }
                         }
                         
-                        hunt.Jobs[name].Monsters[index].Add(newMonster);
+                        newTask.Monsters.Add(newMonster);
                     }
+                    
+                    if (newTask.Monsters.Any()) hunt.JobRanks[name][index].Tasks.Add(newTask);
                     
                     tencounter++;
                     if (tencounter % 50 == 0)
@@ -217,7 +238,7 @@ namespace Hunty
                     else if (tencounter % 10 == 0)
                     {
                         index++;
-                        hunt.Jobs[name].Monsters.Add(new List<HuntingMonster>());
+                        hunt.JobRanks[name].Add(new HuntingRank());
                     }
                 }
                 catch (Exception e)
@@ -228,7 +249,7 @@ namespace Hunty
             
             var l = JsonConvert.SerializeObject(hunt, new JsonSerializerSettings { Formatting = Formatting.Indented,});
             
-            var path = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "monsters.json");
+            var path = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "monstersTest.json");
             PluginLog.Information($"Writing monster json");
             PluginLog.Information(path);
             File.WriteAllText(path, l);

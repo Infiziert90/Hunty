@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Lumina.Excel.GeneratedSheets;
 using Newtonsoft.Json;
@@ -9,16 +8,22 @@ using static Hunty.Helper;
 
 namespace Hunty;
 
-[Serializable]
 public class HuntingData
 {
-    public Dictionary<string, HuntingRank> Jobs { get; set; } = new();
+    public Dictionary<string, List<HuntingRank>> JobRanks { get; set; } = new();
 }
 
 [Serializable]
 public class HuntingRank
 {
-    public List<List<HuntingMonster>> Monsters { get; set; } = new();
+    public List<HuntingTask> Tasks { get; set; } = new();
+}
+
+[Serializable]
+public class HuntingTask
+{
+    public string Name;
+    public List<HuntingMonster> Monsters { get; set; } = new();
 }
 
 [Serializable]
@@ -30,10 +35,9 @@ public class HuntingMonster
 
     public List<HuntingMonsterLocation> Locations { get; set; } = new();
 
-    public HuntingMonsterLocation GetLocation()
-    {
-        return Locations[0]; // game gives up to 3 locations
-    }
+    public HuntingMonsterLocation GetLocation => Locations[0]; // game gives up to 3 locations
+    public string GetCoordinates => Locations[0].MapLink.CoordinateString;
+    public bool IsOpenWorld => !Locations[0].IsDuty;
 }
 
 [Serializable]
@@ -49,6 +53,7 @@ public class HuntingMonsterLocation
     [JsonIgnore] public string Name = string.Empty;
     [JsonIgnore] public bool IsDuty = false;
     [JsonIgnore] public string DutyName = string.Empty;
+    [JsonIgnore] public uint DutyKey = 0;
     [JsonIgnore] public MapLinkPayload MapLink = null!;
     
     public HuntingMonsterLocation(uint terri, uint map)
@@ -80,25 +85,18 @@ public class HuntingMonsterLocation
         if (content == null) return;
         
         if (ToTitleCaseExtended(content.Name, 0) == "") return;
+        
         IsDuty = true;
         DutyName = ToTitleCaseExtended(content.Name, 0);
+        DutyKey = content.RowId;
     }
 }
 
-public class NewProgressEntry
+public struct MonsterProgress
 {
-    public readonly string Mob;
-    public readonly string Job;
+    public readonly int Killed = 0;
+    public readonly bool Done = false;
     
-    public readonly int Killed;
-    public bool Done = false;
-
-    public NewProgressEntry(GroupCollection groups)
-    {
-        Mob = groups.ContainsKey("mob") ? ToTitleCaseExtended(groups["mob"]) : "";
-        Job = groups.ContainsKey("job") ? ToTitleCaseExtended(groups["job"]) : "";
-        Killed = groups.ContainsKey("killed") ? Parse(groups["killed"]) : -1;
-
-        if (Job == "") Done = true;
-    }
+    public MonsterProgress(int killed) => Killed = killed;
+    public MonsterProgress(bool done) => Done = done;
 }

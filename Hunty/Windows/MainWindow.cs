@@ -14,17 +14,17 @@ public class MainWindow : Window, IDisposable
     private int selectedClass = 0;
     private int selectedRank = 0;
     private int selectedArea = 0;
-
+    
     private bool openGrandCompany = false;
+    private bool isOpenWorld = false;
     
     private string currentJob = "";
     private string currentGC = "";
     
     private Dictionary<string, List<HuntingMonster>> currentAreas = new();
     
+    private readonly Vector4 redColor = new(0.980f, 0.245f, 0.245f, 1.0f);
     private static Vector2 size = new(40, 40);
-    private const ImGuiWindowFlags flags = ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
-    
     private static string[] jobs;
     
     public MainWindow(Plugin plugin) : base("Hunty")
@@ -38,11 +38,7 @@ public class MainWindow : Window, IDisposable
         Plugin = plugin;
     }
 
-    public void Initialize()
-    {
-        jobs = Plugin.HuntingData.Jobs.Keys.ToArray()[..^3];
-    }
-    
+    public void Initialize() => jobs = Plugin.HuntingData.JobRanks.Keys.ToArray()[..^3];
     public void Dispose() { }
 
     public override void Draw()
@@ -50,70 +46,51 @@ public class MainWindow : Window, IDisposable
         var oldRank = selectedRank;
         var oldClass = selectedClass;
 
-        HuntingRank selClass;
-        var ok = Plugin.HuntingData.Jobs.TryGetValue(currentJob, out selClass);
-        if (!openGrandCompany && !ok)
+        List<HuntingRank> selClass;
+        if (openGrandCompany)
+        {
+            Plugin.HuntingData.JobRanks.TryGetValue(currentGC, out selClass);
+            ImGui.TextUnformatted(currentGC);
+        }
+        else if (!Plugin.HuntingData.JobRanks.TryGetValue(currentJob, out selClass))
         {
             ImGui.Combo("##classSelector", ref selectedClass, jobs, jobs.Length);
             DrawArrows(ref selectedClass, jobs.Length, 0);
 
-            selClass = Plugin.HuntingData.Jobs[jobs[selectedClass]];
-        }
-        else if (openGrandCompany && Plugin.HuntingData.Jobs.TryGetValue(currentGC, out selClass))
-        {
-            ImGui.TextUnformatted(currentGC);
+            selClass = Plugin.HuntingData.JobRanks[jobs[selectedClass]];
         }
         else
         {
             ImGui.TextUnformatted(currentJob);
         }
 
-        var textLength = ImGui.CalcTextSize(openGrandCompany ? "Job" : "Grand Company").X;
+        var btnText = openGrandCompany ? "Jobs" : "Grand Company";
+        var textLength = ImGui.CalcTextSize(btnText).X;
         var scrollBarSpacing = ImGui.GetScrollMaxY() == 0 ? 0.0f : 15.0f;
         ImGui.SameLine(ImGui.GetWindowWidth() - 15.0f - textLength - scrollBarSpacing);
-
-        if (!openGrandCompany)
+        
+        if (ImGui.Button(btnText))
         {
-            if (ImGui.Button("Grand Company"))
-            {
-                openGrandCompany = true;
-                Defaults();
-                return;
-            }
+            openGrandCompany ^= true;
+            Defaults();
+            return;
         }
-        else
+        
+        if (openGrandCompany && currentGC == "No GC")
         {
-            if (ImGui.Button("Jobs"))
-            {
-                openGrandCompany = false;
-                Defaults();
-                return;
-            }
+            ImGui.TextColored(redColor,"This character has no Grand Company.");
+            return;
         }
         
         ImGuiHelpers.ScaledDummy(5);
         ImGui.Separator();
         ImGuiHelpers.ScaledDummy(5);
         
-        var rankList = selClass!.Monsters.Select((_, i) => $"Rank {i+1}").ToArray();
+        var rankList = selClass!.Select((_, i) => $"Rank {i+1}").ToArray();
         ImGui.Combo("##rankSelector", ref selectedRank, rankList, rankList.Length);
         DrawArrows(ref selectedRank, rankList.Length, 2);
-
-        if (selectedRank != oldRank || selectedClass != oldClass || !currentAreas.Any())
-        {
-            currentAreas.Clear();
-            selectedArea = 0;
-            
-            foreach (var m in selClass.Monsters[selectedRank])
-            {
-                var location = m.Locations[0];
-                if (location.Name == string.Empty) location.InitLocation();
-
-                var key = !location.IsDuty ? location.Name : location.DutyName;
-                if (!currentAreas.ContainsKey(key)) currentAreas.Add(key, new List<HuntingMonster>());
-                currentAreas[key].Add(m);
-            }
-        }
+        
+        FillCurrentAreas(oldRank, oldClass, selClass);
         
         var areaList = currentAreas.Keys.ToArray();
         ImGui.Combo("##areaSelector", ref selectedArea, areaList, areaList.Length);
@@ -121,39 +98,30 @@ public class MainWindow : Window, IDisposable
         
         ImGuiHelpers.ScaledDummy(10);
         
-        var monster = currentAreas[areaList[selectedArea]];
+        var monsters = currentAreas[areaList[selectedArea]];
+        isOpenWorld = monsters.First().IsOpenWorld;
 
-        var isDuty = monster[0].Locations[0].IsDuty;
-        if (ImGui.BeginTable("##monsterTable", !isDuty ? 4 : 3))
+        var memoryProgress = Plugin.GetMemoryProgress(!openGrandCompany ? jobs[selectedClass] : currentGC, selectedRank);
+        if (ImGui.BeginTable("##monsterTable", 4))
         {
             ImGui.TableSetupColumn("##icon", ImGuiTableColumnFlags.None, 0.2f);
             ImGui.TableSetupColumn("Monster");
             ImGui.TableSetupColumn("Needed", ImGuiTableColumnFlags.None, 0.4f);
-            if (!isDuty) ImGui.TableSetupColumn("Coords", ImGuiTableColumnFlags.None, 1.5f);
+            ImGui.TableSetupColumn(isOpenWorld ? "Coords" : "Duty", ImGuiTableColumnFlags.None, 1.5f);
             
             ImGui.TableHeadersRow();
-            foreach (var m in monster)
+            
+            foreach (var monster in monsters)
             {
                 ImGui.TableNextColumn();
-                DrawIcon(m.Icon);
+                DrawIcon(monster.Icon);
                 
                 ImGui.TableNextColumn();
-                ImGui.TextUnformatted(m.Name);
+                ImGui.TextUnformatted(monster.Name);
                 
                 ImGui.TableNextColumn();
-                var killed = 0;
-                var done = false;
-                var progress = Plugin.Configuration.Progress.GetOrCreate(Plugin.LocalContentID);
-                if (progress.TryGetValue(!openGrandCompany ? jobs[selectedClass] : currentGC, out var job))
-                {
-                    if (job.TryGetValue(m.Name, out var mob))
-                    {
-                        killed = mob.Killed;
-                        done = mob.Done;
-                    }
-                }
-
-                if (done)
+                var monsterProgress = memoryProgress[monster.Name];
+                if (monsterProgress.Done)
                 {
                     ImGui.PushFont(UiBuilder.IconFont);
                     ImGui.TextUnformatted(FontAwesomeIcon.Check.ToIconString());
@@ -161,15 +129,22 @@ public class MainWindow : Window, IDisposable
                 }
                 else
                 {
-                    ImGui.TextUnformatted($"{killed} / {m.Count.ToString()}");
+                    ImGui.TextUnformatted($"{monsterProgress.Killed} / {monster.Count.ToString()}");
                 }
-
-                if (!isDuty)
+                
+                ImGui.TableNextColumn();
+                if (isOpenWorld)
                 {
-                    ImGui.TableNextColumn();
-                    if (ImGui.Selectable($"{m.GetLocation().Name} {m.GetLocation().MapLink.CoordinateString}##{m.Icon.ToString()}"))
+                    if (ImGui.Selectable($"{monster.GetLocation.Name} {monster.GetCoordinates}##{monster.Icon.ToString()}"))
                     {
-                        Plugin.SetMapMarker(m.GetLocation().MapLink);
+                        Plugin.SetMapMarker(monster.GetLocation.MapLink);
+                    }
+                }
+                else
+                {
+                    if (ImGui.Selectable($"{monster.GetLocation.DutyName}##{monster.Icon.ToString()}"))
+                    {
+                        Plugin.OpenDutyFinder(monster.GetLocation.DutyKey);
                     }
                 }
 
@@ -179,7 +154,7 @@ public class MainWindow : Window, IDisposable
         ImGui.EndTable();
     }
 
-    public static void DrawArrows(ref int selected, int length, int id)
+    private static void DrawArrows(ref int selected, int length, int id)
     {
         ImGui.SameLine();
         if (selected == 0) ImGui.BeginDisabled();
@@ -192,16 +167,19 @@ public class MainWindow : Window, IDisposable
         if (selected + 1 == length) ImGui.EndDisabled();
     }
 
-    public void Defaults()
+    private void Defaults()
     {
         selectedClass = 0;
         selectedRank = 0;
         selectedArea = 0;
         
+        if (Plugin.HuntingData.JobRanks.ContainsKey(currentJob))
+            selectedClass = Array.IndexOf(jobs, currentJob);
+        
         currentAreas.Clear();
     }
     
-    public static void DrawIcon(uint iconId)
+    private static void DrawIcon(uint iconId)
     {
         var texture = TexturesCache.Instance!.GetTextureFromIconId(iconId);
         ImGui.Image(texture.ImGuiHandle, size);
@@ -211,11 +189,24 @@ public class MainWindow : Window, IDisposable
     {
         currentJob = job;
         currentGC = gc;
+        
+        Defaults();
+    }
 
-        if (Plugin.HuntingData.Jobs.ContainsKey(job))
+    private void FillCurrentAreas(int oldRank, int oldClass, IReadOnlyList<HuntingRank> selClass)
+    {
+        if (selectedRank == oldRank && selectedClass == oldClass && currentAreas.Any()) return;
+        
+        currentAreas.Clear();
+        selectedArea = 0;
+            
+        foreach (var m in selClass![selectedRank].Tasks.SelectMany(a => a.Monsters))
         {
-            Defaults(); // reset to prevent null exceptions with different list lengths
-            selectedClass = Array.IndexOf(jobs, job);
+            var location = m.Locations[0];
+            if (location.Name == string.Empty) location.InitLocation();
+
+            var name = !location.IsDuty ? location.Name : location.DutyName;
+            currentAreas.GetOrCreate(name).Add(m);
         }
     }
 }
