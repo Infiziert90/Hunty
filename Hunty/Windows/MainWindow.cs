@@ -2,9 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using CheapLoc;
 using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
+using Hunty.Data;
 using ImGuiNET;
+using Lumina.Excel.GeneratedSheets;
 
 namespace Hunty.Windows;
 
@@ -16,16 +19,20 @@ public class MainWindow : Window, IDisposable
     private int selectedArea = 0;
     
     private bool openGrandCompany = false;
-    private bool isOpenWorld = false;
     
-    private string currentJob = "";
-    private string currentGC = "";
+    private uint currentJob = 1;
+    private string currentJobName = "";
+    private uint currentGc = 1;
+    private string currentGcName = "";
     
     private Dictionary<string, List<HuntingMonster>> currentAreas = new();
     
     private readonly Vector4 redColor = new(0.980f, 0.245f, 0.245f, 1.0f);
     private static Vector2 size = new(40, 40);
-    private static string[] jobs;
+    private static string[] jobs = new string[9];
+    private static readonly uint[] JobArray = { 1, 2, 3, 4, 5, 6, 7, 26, 29 };
+
+    private static Dictionary<string, string> monsterLanguage;
     
     public MainWindow(Plugin plugin) : base("Hunty")
     {
@@ -38,7 +45,15 @@ public class MainWindow : Window, IDisposable
         Plugin = plugin;
     }
 
-    public void Initialize() => jobs = Plugin.HuntingData.JobRanks.Keys.ToArray()[..^3];
+    public void Initialize()
+    {
+        monsterLanguage = StaticData.MonsterNames[Plugin.ClientState.ClientLanguage];
+
+        var classJobs = Plugin.Data.GetExcelSheet<ClassJob>()!;
+        for (var i = 0; i < JobArray.Length; i++)
+            jobs[i] = Helper.ToTitleCaseExtended(classJobs.GetRow(JobArray[i])!.Name);
+    }
+
     public void Dispose() { }
 
     public override void Draw()
@@ -49,22 +64,22 @@ public class MainWindow : Window, IDisposable
         List<HuntingRank> selClass;
         if (openGrandCompany)
         {
-            Plugin.HuntingData.JobRanks.TryGetValue(currentGC, out selClass);
-            ImGui.TextUnformatted(currentGC);
+            Plugin.HuntingData.JobRanks.TryGetValue(currentGc, out selClass);
+            ImGui.TextUnformatted(currentGcName);
         }
         else if (!Plugin.HuntingData.JobRanks.TryGetValue(currentJob, out selClass))
         {
             ImGui.Combo("##classSelector", ref selectedClass, jobs, jobs.Length);
             DrawArrows(ref selectedClass, jobs.Length, 0);
 
-            selClass = Plugin.HuntingData.JobRanks[jobs[selectedClass]];
+            selClass = Plugin.HuntingData.JobRanks[JobArray[selectedClass]];
         }
         else
         {
-            ImGui.TextUnformatted(currentJob);
+            ImGui.TextUnformatted(currentJobName);
         }
 
-        var btnText = openGrandCompany ? "Jobs" : "Grand Company";
+        var btnText = openGrandCompany ? Loc.Localize("Button: Jobs", "Jobs") : Loc.Localize("Button: Grand Company", "Grand Company");
         var textLength = ImGui.CalcTextSize(btnText).X;
         var scrollBarSpacing = ImGui.GetScrollMaxY() == 0 ? 0.0f : 15.0f;
         ImGui.SameLine(ImGui.GetWindowWidth() - 15.0f - textLength - scrollBarSpacing);
@@ -76,38 +91,44 @@ public class MainWindow : Window, IDisposable
             return;
         }
         
-        if (openGrandCompany && currentGC == "No GC")
+        if (openGrandCompany && currentGc == 10000)
         {
-            ImGui.TextColored(redColor,"This character has no Grand Company.");
+            ImGui.TextColored(redColor,Loc.Localize("Error: No Grand Company", "This character has no Grand Company."));
             return;
         }
         
         ImGuiHelpers.ScaledDummy(5);
         ImGui.Separator();
         ImGuiHelpers.ScaledDummy(5);
+
+        var current = !openGrandCompany ? JobArray[selectedClass] : currentGc;
         
-        var rankList = selClass!.Select((_, i) => $"Rank {i+1}").ToArray();
+        var rankList = selClass!.Select((_, i) => $"{Loc.Localize("Selector: Rank", "Rank")} {i+1}").ToArray();
         ImGui.Combo("##rankSelector", ref selectedRank, rankList, rankList.Length);
         DrawArrows(ref selectedRank, rankList.Length, 2);
-        
+        DrawProgressSymbol(selectedRank < Plugin.GetRankFromMemory(current));
+            
         FillCurrentAreas(oldRank, oldClass, selClass);
         
         var areaList = currentAreas.Keys.ToArray();
         ImGui.Combo("##areaSelector", ref selectedArea, areaList, areaList.Length);
         DrawArrows(ref selectedArea, areaList.Length, 4);
         
+        var monsters = currentAreas[areaList[selectedArea]];
+        var memoryProgress = Plugin.GetMemoryProgress(current, selectedRank);
+        DrawProgressSymbol(monsters.All(x => memoryProgress[x.Name].Done));
+        
         ImGuiHelpers.ScaledDummy(10);
         
-        var monsters = currentAreas[areaList[selectedArea]];
-        isOpenWorld = monsters.First().IsOpenWorld;
-
-        var memoryProgress = Plugin.GetMemoryProgress(!openGrandCompany ? jobs[selectedClass] : currentGC, selectedRank);
         if (ImGui.BeginTable("##monsterTable", 4))
         {
             ImGui.TableSetupColumn("##icon", ImGuiTableColumnFlags.None, 0.2f);
-            ImGui.TableSetupColumn("Monster");
-            ImGui.TableSetupColumn("Needed", ImGuiTableColumnFlags.None, 0.4f);
-            ImGui.TableSetupColumn(isOpenWorld ? "Coords" : "Duty", ImGuiTableColumnFlags.None, 1.5f);
+            ImGui.TableSetupColumn(Loc.Localize("Table Label: Monster", "Monster"));
+            ImGui.TableSetupColumn(Loc.Localize("Table Label: Done", "Done"), ImGuiTableColumnFlags.None, 0.4f);
+            ImGui.TableSetupColumn(monsters.First().IsOpenWorld 
+                ? Loc.Localize("Table Label: Coords", "Coords")
+                : Loc.Localize("Table Label: Dungeon", "Dungeon")
+                , ImGuiTableColumnFlags.None, 1.5f);
             
             ImGui.TableHeadersRow();
             
@@ -117,7 +138,7 @@ public class MainWindow : Window, IDisposable
                 DrawIcon(monster.Icon);
                 
                 ImGui.TableNextColumn();
-                ImGui.TextUnformatted(monster.Name);
+                ImGui.TextUnformatted(monsterLanguage == null ? monster.Name : monsterLanguage[monster.Name]);
                 
                 ImGui.TableNextColumn();
                 var monsterProgress = memoryProgress[monster.Name];
@@ -133,7 +154,7 @@ public class MainWindow : Window, IDisposable
                 }
                 
                 ImGui.TableNextColumn();
-                if (isOpenWorld)
+                if (monster.IsOpenWorld)
                 {
                     if (ImGui.Selectable($"{monster.GetLocation.Name} {monster.GetCoordinates}##{monster.Icon.ToString()}"))
                     {
@@ -167,6 +188,16 @@ public class MainWindow : Window, IDisposable
         if (selected + 1 == length) ImGui.EndDisabled();
     }
 
+    private void DrawProgressSymbol(bool done)
+    {
+        ImGui.SameLine();
+        ImGui.PushFont(UiBuilder.IconFont);
+        ImGui.TextUnformatted(done
+            ? FontAwesomeIcon.Check.ToIconString()
+            : FontAwesomeIcon.Times.ToIconString());
+        ImGui.PopFont();
+    }
+
     private void Defaults()
     {
         selectedClass = 0;
@@ -174,7 +205,7 @@ public class MainWindow : Window, IDisposable
         selectedArea = 0;
         
         if (Plugin.HuntingData.JobRanks.ContainsKey(currentJob))
-            selectedClass = Array.IndexOf(jobs, currentJob);
+            selectedClass = Array.IndexOf(JobArray, currentJob);
         
         currentAreas.Clear();
     }
@@ -185,10 +216,12 @@ public class MainWindow : Window, IDisposable
         ImGui.Image(texture.ImGuiHandle, size);
     }
 
-    public void SetJobAndGc(string job, string gc)
+    public void SetJobAndGc(uint job, string name, uint gc, string gcName)
     {
         currentJob = job;
-        currentGC = gc;
+        currentJobName = name;
+        currentGc = gc;
+        currentGcName = gcName;
         
         Defaults();
     }

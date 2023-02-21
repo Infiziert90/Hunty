@@ -7,6 +7,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using CheapLoc;
+using Dalamud;
 using Hunty.Windows;
 using Dalamud.Data;
 using Dalamud.Game.ClientState;
@@ -19,6 +21,7 @@ using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Hunty.Data;
 using Lumina.Excel.GeneratedSheets;
 using Newtonsoft.Json;
+using GrandCompany = Lumina.Excel.GeneratedSheets.GrandCompany;
 using Map = Lumina.Excel.GeneratedSheets.Map;
 
 namespace Hunty
@@ -31,12 +34,13 @@ namespace Hunty
         private const string CommandName = "/hunty";
         
         public static DalamudPluginInterface PluginInterface { get; private set; } = null!;
+        public readonly ClientState ClientState = null!;
+        private Localization Localization = new();
         private Configuration Configuration { get; init; }
         private CommandManager CommandManager { get; init; }
         private Framework Framework { get; init; }
         private GameGui GameGui { get; init; }
         private WindowSystem WindowSystem = new("Hunty");
-        private ClientState ClientState = null!;
         private MainWindow MainWindow = null!;
         
         public readonly HuntingData HuntingData = null!;
@@ -47,8 +51,7 @@ namespace Hunty
             [RequiredVersion("1.0")] Framework framework,
             [RequiredVersion("1.0")] GameGui gameGui,
             [RequiredVersion("1.0")] CommandManager commandManager,
-            [RequiredVersion("1.0")] ClientState clientState,
-            [RequiredVersion("1.0")] SigScanner sigScanner)
+            [RequiredVersion("1.0")] ClientState clientState)
         {   
             PluginInterface = pluginInterface;
             Framework = framework;
@@ -61,15 +64,16 @@ namespace Hunty
 
             MainWindow = new MainWindow(this);
             WindowSystem.AddWindow(MainWindow);
-            
-            CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
-            {
-                HelpMessage = "Opens a small guide book"
-            });
+            Localization.SetupWithLangCode(PluginInterface.UiLanguage);
             
             PluginInterface.UiBuilder.Draw += DrawUI;
-            
+            PluginInterface.LanguageChanged += Localization.SetupWithLangCode;
+
+            GetLocMonsterNames();
             TexturesCache.Initialize();
+            
+            CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand) 
+                { HelpMessage = Loc.Localize("Help Message", "Opens a small guide book.") });
             
             try
             {
@@ -94,10 +98,10 @@ namespace Hunty
         {
             if (ClientState.LocalPlayer == null) return;
             currentJob = ClientState.LocalPlayer.ClassJob.GameData!.ClassJobParent.Value!;
-
-            var name = Helper.ToTitleCaseExtended(currentJob.Name, 0);
+            
+            var name = Helper.ToTitleCaseExtended(currentJob.Name);
             PluginLog.Debug($"Logging in on: {name}");
-            MainWindow.SetJobAndGc(name, GetGrandCompany());
+            MainWindow.SetJobAndGc(currentJob.RowId, name, GetGrandCompany(), GetCurrentGcName());
         }
         
         private void CheckJobChange(Framework framework)
@@ -106,13 +110,13 @@ namespace Hunty
             var job = ClientState.LocalPlayer.ClassJob.GameData!.ClassJobParent;
 
             if (job.Row != currentJob.RowId) {
-                currentJob = job.Value;
-                var name = Helper.ToTitleCaseExtended(job.Value!.Name, 0);
+                currentJob = job.Value!;
+                var name = Helper.ToTitleCaseExtended(currentJob.Name);
                 PluginLog.Debug($"Job switch: {name}");
-                MainWindow.SetJobAndGc(name, GetGrandCompany());
+                MainWindow.SetJobAndGc(job.Row, name, GetGrandCompany(), GetCurrentGcName());
             }
         }
-        
+
         public void Dispose()
         {
             Framework.Update -= CheckJobChange;
@@ -129,9 +133,11 @@ namespace Hunty
         
         public void SetMapMarker(MapLinkPayload map) => GameGui.OpenMapWithMapLink(map);
         public unsafe void OpenDutyFinder(uint key) => AgentContentsFinder.Instance()->OpenRegularDuty(key);
-        public unsafe string GetGrandCompany() => StaticData.GrandCompanies[UIState.Instance()->PlayerState.GrandCompany];
-
-        public unsafe Dictionary<string, MonsterProgress> GetMemoryProgress(string job, int rank)
+        public unsafe uint GetGrandCompany() => UIState.Instance()->PlayerState.GrandCompany + (uint) 10000;
+        public string GetCurrentGcName() => Helper.ToTitleCaseExtended(Data.GetExcelSheet<GrandCompany>()!.GetRow(GetGrandCompany() - 10000)!.Name);
+        public unsafe int GetRankFromMemory(uint job) => MonsterNoteManager.Instance()->RankDataArraySpan[StaticData.JobInMemory(job)].Rank;
+        
+        public unsafe Dictionary<string, MonsterProgress> GetMemoryProgress(uint job, int rank)
         {
             var currentProgress = new Dictionary<string, MonsterProgress>();
             
@@ -166,6 +172,32 @@ namespace Hunty
 
             return currentProgress;
         }
+
+        private void GetLocMonsterNames()
+        {
+            var currentLanguage = ClientState.ClientLanguage;
+            if (currentLanguage == ClientLanguage.English) return;
+            
+            var monsterNotes = Data.GetExcelSheet<MonsterNote>()!;
+            var bNpcNamesEnglish = Data.GetExcelSheet<BNpcName>(ClientLanguage.English)!;
+
+            var fill = StaticData.MonsterNames[currentLanguage];
+            foreach (var currentMonster in monsterNotes
+                         .Where(monsterNote => monsterNote.RowId != 0)
+                         .SelectMany(monsterNote => monsterNote.MonsterNoteTarget
+                             .Where(monster => monster.Row != 0)
+                             .Select(monster => monster.Value!.BNpcName.Value!)))
+            {
+                var bNpcEnglish = bNpcNamesEnglish.GetRow(currentMonster.RowId)!;
+                
+                var correctedName = Helper.ToTitleCaseExtended(currentMonster.Singular, currentMonster.Article);
+                if (ClientState.ClientLanguage == ClientLanguage.German)
+                    correctedName = Helper.CorrectGermanNames(correctedName, currentMonster.Pronoun);
+
+                fill[Helper.ToTitleCaseExtended(bNpcEnglish.Singular, bNpcEnglish.Article)] = correctedName;
+            }
+            
+        }
         
         // If square ever decides to change the Hunting Log~
         #region internal
@@ -183,14 +215,15 @@ namespace Hunty
                 if (task.RowId == 0) continue;
                 try
                 {
-                    var parts = task.Name.ToString().Split(" ");
-                    var name = string.Join(" ", parts.Take(parts.Length-1));
-                    if (name == "Order of the Twin Adder") name = "Twin Adder";
+                    // TODO Make uint compatible
+                    // var parts = task.Name.ToString().Split(" ");
+                    // var name = string.Join(" ", parts.Take(parts.Length-1));
+                    // if (name == "Order of the Twin Adder") name = "Twin Adder";
                     
-                    if (!hunt.JobRanks.ContainsKey(name))
-                    {
-                        hunt.JobRanks.Add(name, new List<HuntingRank>() {new HuntingRank()});
-                    }
+                    // if (!hunt.JobRanks.ContainsKey(name))
+                    // {
+                    //     hunt.JobRanks.Add(name, new List<HuntingRank>() {new HuntingRank()});
+                    // }
                     
                     var newTask = new HuntingTask
                     {
@@ -228,7 +261,7 @@ namespace Hunty
                         newTask.Monsters.Add(newMonster);
                     }
                     
-                    if (newTask.Monsters.Any()) hunt.JobRanks[name][index].Tasks.Add(newTask);
+                    // if (newTask.Monsters.Any()) hunt.JobRanks[name][index].Tasks.Add(newTask);
                     
                     tencounter++;
                     if (tencounter % 50 == 0)
@@ -238,7 +271,7 @@ namespace Hunty
                     else if (tencounter % 10 == 0)
                     {
                         index++;
-                        hunt.JobRanks[name].Add(new HuntingRank());
+                        // hunt.JobRanks[name].Add(new HuntingRank());
                     }
                 }
                 catch (Exception e)

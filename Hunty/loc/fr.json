@@ -1,0 +1,38 @@
+{
+  "Button: Grand Company": {
+    "message": "Grande Compagnie",
+    "description": "MainWindow.Draw"
+  },
+  "Button: Jobs": {
+    "message": "Jobs",
+    "description": "MainWindow.Draw"
+  },
+  "Error: No Grand Company": {
+    "message": "Ce personnage n'est pas affilié à une Grande Compagnie.",
+    "description": "MainWindow.Draw"
+  },
+  "Table Label: Monster": {
+    "message": "Monstre",
+    "description": "MainWindow.Draw"
+  },
+  "Table Label: Done": {
+    "message": "Terminé",
+    "description": "MainWindow.Draw"
+  },
+  "Table Label: Dungeon": {
+    "message": "Donjon",
+    "description": "MainWindow.Draw"
+  },
+  "Table Label: Coords": {
+    "message": "Coordonnées",
+    "description": "MainWindow.Draw"
+  },
+  "Selector: Rank": {
+    "message": "Rang",
+    "description": "<>c.<Draw>b__18_0"
+  },  
+  "Help Message": {
+    "message": "Ouvre un manuel d'aide.",
+    "description": "Plugin..ctor"
+  }
+}

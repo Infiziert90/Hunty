@@ -2,7 +2,7 @@
   "name": "Hunty",
   "Author": "Infi",
   "Punchline": "Time to finish your log?",
-  "Description": "Never has it been that easy to finish your hunting log.",
+  "Description": "Never has it been that easy to finish your hunting log. \n\n+ List of monsters in the same location based on Rank\n+ Clickable coords to open your map on that exact location\n+ Clickable dungeon name to open your duty finder\n+ Easy to switch between Grand Company and Jobs\n+ Automatic selection based on current job",
   "RepoUrl": "https://github.com/Infiziert90/Hunty",
   "Tags": [ "hunting log" ],
   "CategoryTags": [ "jobs" ]

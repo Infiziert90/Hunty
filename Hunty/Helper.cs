@@ -1,7 +1,8 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using Dalamud.Utility;
+using Hunty.Data;
 using Lumina.Text;
 
 namespace Hunty;
@@ -9,7 +10,7 @@ namespace Hunty;
 public static class Helper
 {
     // From Ottermandias
-    public static string ToTitleCaseExtended(SeString s, sbyte article)
+    public static string ToTitleCaseExtended(SeString s, sbyte article = 0)
     {
         if (article == 1)
             return s.ToDalamudString().ToString();
@@ -32,27 +33,20 @@ public static class Helper
         return sb.ToString();
     }
     
-    public static string ToTitleCaseExtended(Group s)
+    public static string CorrectGermanNames(string name, sbyte pronoun)
     {
-        var sb        = new StringBuilder(s.Value);
-        var lastSpace = true;
-        for (var i = 0; i < sb.Length; ++i)
+        if (name.Contains("[a]"))
         {
-            if (sb[i] == ' ')
-            {
-                lastSpace = true;
-            }
-            else if (lastSpace)
-            {
-                lastSpace = false;
-                sb[i]     = char.ToUpperInvariant(sb[i]);
-            }
+            var s = StaticData.GermanPronouns.ElementAtOrDefault(pronoun);
+            name = name.Replace("[a]", s);
+        }
+        else if (name.Contains("[p]"))
+        {
+            name = name.Replace("[p]", "");
         }
 
-        return sb.ToString();
+        return name;
     }
-
-    public static int Parse(Group s) => int.Parse(s.Value);
     
     public static TValue GetOrCreate<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key) 
         where TValue : new()

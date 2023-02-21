@@ -10,7 +10,7 @@ namespace Hunty;
 
 public class HuntingData
 {
-    public Dictionary<string, List<HuntingRank>> JobRanks { get; set; } = new();
+    public Dictionary<uint, List<HuntingRank>> JobRanks { get; set; } = new();
 }
 
 [Serializable]

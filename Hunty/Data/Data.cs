@@ -1,34 +1,43 @@
 using System.Collections.Generic;
+using Dalamud;
 
 namespace Hunty.Data;
 
 public static class StaticData
 {
-    public static int JobInMemory(string name)
+    public static int JobInMemory(uint key)
     {
-        return name switch
+        return key switch
         {
-            "Gladiator" => 0,
-            "Pugilist" => 1,
-            "Marauder" => 2,
-            "Lancer" => 3,
-            "Archer" => 4,
-            "Conjurer" => 5,
-            "Thaumaturge" => 6,
-            "Arcanist" => 7,
-            "Maelstrom" => 8,
-            "Twin Adder" => 9,
-            "Immortal Flames" => 10,
-            "Rogue" => 11,
+            1 => 0,
+            2 => 1,
+            3 => 2,
+            4 => 3,
+            5 => 4,
+            6 => 5,
+            7 => 6,
+            26 => 7,
+            10001 => 8,
+            10002 => 9,
+            10003 => 10,
+            29 => 11,
             _ => 0
         };
     }
-
-    public static readonly List<string> GrandCompanies = new()
+    
+    // English -> Other Language
+    public static Dictionary<ClientLanguage, Dictionary<string, string>> MonsterNames = new()
     {
-        "No GC", 
-        "Maelstrom", 
-        "Twin Adder", 
-        "Immortal Flames"
+        { ClientLanguage.English, null },
+        { ClientLanguage.German, new Dictionary<string, string>() },
+        { ClientLanguage.French, new Dictionary<string, string>() },
+        { ClientLanguage.Japanese, new Dictionary<string, string>() },
+    };
+
+    public static readonly List<string> GermanPronouns = new()
+    {
+        "er",
+        "e",
+        "es"
     };
 }

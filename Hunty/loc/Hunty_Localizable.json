@@ -1,0 +1,38 @@
+{
+  "Button: Grand Company": {
+    "message": "Grand Company",
+    "description": "MainWindow.Draw"
+  },
+  "Button: Jobs": {
+    "message": "Jobs",
+    "description": "MainWindow.Draw"
+  },
+  "Error: No Grand Company": {
+    "message": "This character does not have a Grand Company.",
+    "description": "MainWindow.Draw"
+  },
+  "Table Label: Monster": {
+    "message": "Monster",
+    "description": "MainWindow.Draw"
+  },
+  "Table Label: Done": {
+    "message": "Done",
+    "description": "MainWindow.Draw"
+  },
+  "Table Label: Dungeon": {
+    "message": "Dungeon",
+    "description": "MainWindow.Draw"
+  },
+  "Table Label: Coords": {
+    "message": "Coords",
+    "description": "MainWindow.Draw"
+  },
+  "Selector: Rank": {
+    "message": "Rank",
+    "description": "<>c.<Draw>b__18_0"
+  },  
+  "Help Message": {
+    "message": "Opens a small guide book.",
+    "description": "Plugin..ctor"
+  }
+}
