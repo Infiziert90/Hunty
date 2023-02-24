@@ -120,6 +120,7 @@ namespace Hunty
         public void Dispose()
         {
             Framework.Update -= CheckJobChange;
+            PluginInterface.LanguageChanged -= Localization.SetupWithLangCode;
             
             TexturesCache.Instance?.Dispose();
             
