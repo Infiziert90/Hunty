@@ -29,10 +29,10 @@ namespace Hunty
     public sealed class Plugin : IDalamudPlugin
     {
         [PluginService] public static DataManager Data { get; set; } = null!;
-        
+
         public string Name => "Hunty";
         private const string CommandName = "/hunty";
-        
+
         public static DalamudPluginInterface PluginInterface { get; private set; } = null!;
         public readonly ClientState ClientState = null!;
         private Localization Localization = new();
@@ -42,39 +42,39 @@ namespace Hunty
         private GameGui GameGui { get; init; }
         private WindowSystem WindowSystem = new("Hunty");
         private MainWindow MainWindow = null!;
-        
+
         public readonly HuntingData HuntingData = null!;
         private ClassJob currentJob = new();
-        
+
         public Plugin(
             [RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
             [RequiredVersion("1.0")] Framework framework,
             [RequiredVersion("1.0")] GameGui gameGui,
             [RequiredVersion("1.0")] CommandManager commandManager,
             [RequiredVersion("1.0")] ClientState clientState)
-        {   
+        {
             PluginInterface = pluginInterface;
             Framework = framework;
             GameGui = gameGui;
             CommandManager = commandManager;
             ClientState = clientState;
-            
+
             Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
             Configuration.Initialize(PluginInterface);
 
             MainWindow = new MainWindow(this);
             WindowSystem.AddWindow(MainWindow);
             Localization.SetupWithLangCode(PluginInterface.UiLanguage);
-            
+
             PluginInterface.UiBuilder.Draw += DrawUI;
             PluginInterface.LanguageChanged += Localization.SetupWithLangCode;
 
             GetLocMonsterNames();
             TexturesCache.Initialize();
-            
-            CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand) 
+
+            CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
                 { HelpMessage = Loc.Localize("Help Message", "Opens a small guide book.") });
-            
+
             try
             {
                 PluginLog.Debug("Loading Monsters.");
@@ -88,22 +88,22 @@ namespace Hunty
                 PluginLog.Error("There was a problem building the HuntingData.");
                 PluginLog.Error(e.Message);
             }
-            
+
             MainWindow.Initialize();
             Framework.Update += CheckJobChange;
             ClientState.Login += OnLogin;
         }
-        
+
         private void OnLogin(object? sender, EventArgs e)
         {
             if (ClientState.LocalPlayer == null) return;
             currentJob = ClientState.LocalPlayer.ClassJob.GameData!.ClassJobParent.Value!;
-            
+
             var name = Helper.ToTitleCaseExtended(currentJob.Name);
             PluginLog.Debug($"Logging in on: {name}");
             MainWindow.SetJobAndGc(currentJob.RowId, name, GetGrandCompany(), GetCurrentGcName());
         }
-        
+
         private void CheckJobChange(Framework framework)
         {
             if (ClientState.LocalPlayer == null) return;
@@ -121,38 +121,38 @@ namespace Hunty
         {
             Framework.Update -= CheckJobChange;
             PluginInterface.LanguageChanged -= Localization.SetupWithLangCode;
-            
+
             TexturesCache.Instance?.Dispose();
-            
+
             MainWindow.Dispose();
             WindowSystem.RemoveWindow(MainWindow);
             CommandManager.RemoveHandler(CommandName);
         }
-        
+
         private void OnCommand(string command, string args) => MainWindow.IsOpen = true;
         private void DrawUI() => WindowSystem.Draw();
-        
+
         public void SetMapMarker(MapLinkPayload map) => GameGui.OpenMapWithMapLink(map);
         public unsafe void OpenDutyFinder(uint key) => AgentContentsFinder.Instance()->OpenRegularDuty(key);
         public unsafe uint GetGrandCompany() => UIState.Instance()->PlayerState.GrandCompany + (uint) 10000;
         public string GetCurrentGcName() => Helper.ToTitleCaseExtended(Data.GetExcelSheet<GrandCompany>()!.GetRow(GetGrandCompany() - 10000)!.Name);
         public unsafe int GetRankFromMemory(uint job) => MonsterNoteManager.Instance()->RankDataArraySpan[StaticData.JobInMemory(job)].Rank;
-        
+
         public unsafe Dictionary<string, MonsterProgress> GetMemoryProgress(uint job, int rank)
         {
             var currentProgress = new Dictionary<string, MonsterProgress>();
-            
+
             var huntingRank = HuntingData.JobRanks[job][rank];
             var monsterNoteManager = MonsterNoteManager.Instance();
             var jobMemory = monsterNoteManager->RankDataArraySpan[StaticData.JobInMemory(job)];
             var progressRank = jobMemory.Rank;
-            
+
             if (progressRank > rank) // Rank is already finished, all monsters are done
             {
                 foreach (var monster in huntingRank.Tasks.SelectMany(a => a.Monsters))
                     currentProgress.Add(monster.Name, new MonsterProgress(true));
-                
-            } 
+
+            }
             else if (progressRank < rank) // Rank not yet reached, kills must be zero
             {
                 foreach (var monster in huntingRank.Tasks.SelectMany(a => a.Monsters))
@@ -165,7 +165,7 @@ namespace Hunty
                     foreach (var (monster, idx) in task.Monsters.Select((monster, i) => ( monster, i )))
                     {
                         var killed = progress.Counts[idx];
-                        currentProgress.Add(monster.Name, 
+                        currentProgress.Add(monster.Name,
                             killed == monster.Count ? new MonsterProgress(true) : new MonsterProgress(killed));
                     }
                 }
@@ -178,7 +178,7 @@ namespace Hunty
         {
             var currentLanguage = ClientState.ClientLanguage;
             if (currentLanguage == ClientLanguage.English) return;
-            
+
             var monsterNotes = Data.GetExcelSheet<MonsterNote>()!;
             var bNpcNamesEnglish = Data.GetExcelSheet<BNpcName>(ClientLanguage.English)!;
 
@@ -190,22 +190,22 @@ namespace Hunty
                              .Select(monster => monster.Value!.BNpcName.Value!)))
             {
                 var bNpcEnglish = bNpcNamesEnglish.GetRow(currentMonster.RowId)!;
-                
+
                 var correctedName = Helper.ToTitleCaseExtended(currentMonster.Singular, currentMonster.Article);
                 if (ClientState.ClientLanguage == ClientLanguage.German)
                     correctedName = Helper.CorrectGermanNames(correctedName, currentMonster.Pronoun);
 
                 fill[Helper.ToTitleCaseExtended(bNpcEnglish.Singular, bNpcEnglish.Article)] = correctedName;
             }
-            
+
         }
-        
+
         // If square ever decides to change the Hunting Log~
         #region internal
         private void WriteMonsterNote()
         {
             var hunt = new HuntingData();
-            
+
             var monsterNotes = Data.GetExcelSheet<MonsterNote>()!;
             var mapSheet = Data.GetExcelSheet<Map>();
 
@@ -220,12 +220,12 @@ namespace Hunty
                     // var parts = task.Name.ToString().Split(" ");
                     // var name = string.Join(" ", parts.Take(parts.Length-1));
                     // if (name == "Order of the Twin Adder") name = "Twin Adder";
-                    
+
                     // if (!hunt.JobRanks.ContainsKey(name))
                     // {
                     //     hunt.JobRanks.Add(name, new List<HuntingRank>() {new HuntingRank()});
                     // }
-                    
+
                     var newTask = new HuntingTask
                     {
                         Name = task.Name.ToString()
@@ -233,13 +233,13 @@ namespace Hunty
                     foreach (var (target, count) in task.MonsterNoteTarget.Zip(task.Count))
                     {
                         if (target.Row == 0) continue;
-                        
+
                         var newMonster = new HuntingMonster();
                         var bNpc = target.Value!.BNpcName.Value!;
                         newMonster.Name = Helper.ToTitleCaseExtended(bNpc.Singular, bNpc.Article);
                         newMonster.Count = count;
                         newMonster.Icon = (uint) target.Value.Icon;
-                        
+
                         foreach (var placename in target.Value!.UnkData3)
                         {
                             var map = mapSheet.FirstOrDefault(row => row.PlaceName.Row == placename.PlaceNameZone);
@@ -258,17 +258,17 @@ namespace Hunty
                                 break;
                             }
                         }
-                        
+
                         newTask.Monsters.Add(newMonster);
                     }
-                    
+
                     // if (newTask.Monsters.Any()) hunt.JobRanks[name][index].Tasks.Add(newTask);
-                    
+
                     tencounter++;
                     if (tencounter % 50 == 0)
                     {
                         index = 0;
-                    } 
+                    }
                     else if (tencounter % 10 == 0)
                     {
                         index++;
@@ -280,9 +280,9 @@ namespace Hunty
                     PluginLog.Error(e.Message);
                 }
             }
-            
+
             var l = JsonConvert.SerializeObject(hunt, new JsonSerializerSettings { Formatting = Formatting.Indented,});
-            
+
             var path = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "monstersTest.json");
             PluginLog.Information($"Writing monster json");
             PluginLog.Information(path);

@@ -1247,11 +1247,11 @@
                 "Icon": 63005,
                 "Locations": [
                   {
-                    "Terri": 135,
-                    "Map": 16,
+                    "Terri": 140,
+                    "Map": 20,
                     "Zone": 0,
-                    "xCoord": 32.4,
-                    "yCoord": 15.7
+                    "xCoord": 21,
+                    "yCoord": 25
                   }
                 ]
               }
@@ -1981,8 +1981,8 @@
                     "Terri": 180,
                     "Map": 30,
                     "Zone": 0,
-                    "xCoord": 13.0,
-                    "yCoord": 15.0
+                    "xCoord": 13.6,
+                    "yCoord": 15.1
                   }
                 ]
               }
@@ -4053,8 +4053,8 @@
                     "Terri": 140,
                     "Map": 20,
                     "Zone": 0,
-                    "xCoord": 26.0,
-                    "yCoord": 18.0
+                    "xCoord": 17.0,
+                    "yCoord": 6.0
                   }
                 ]
               },
@@ -4067,8 +4067,8 @@
                     "Terri": 153,
                     "Map": 6,
                     "Zone": 0,
-                    "xCoord": 16.0,
-                    "yCoord": 7.0
+                    "xCoord": 26.0,
+                    "yCoord": 20.0
                   }
                 ]
               }
@@ -4105,8 +4105,8 @@
                     "Terri": 146,
                     "Map": 23,
                     "Zone": 0,
-                    "xCoord": 27.0,
-                    "yCoord": 20.0
+                    "xCoord": 15.0,
+                    "yCoord": 13.0
                   }
                 ]
               },
@@ -4252,7 +4252,7 @@
                     "Map": 23,
                     "Zone": 0,
                     "xCoord": 25.0,
-                    "yCoord": 28.0
+                    "yCoord": 38.0
                   }
                 ]
               },
@@ -4303,8 +4303,8 @@
                     "Terri": 180,
                     "Map": 30,
                     "Zone": 0,
-                    "xCoord": 13.0,
-                    "yCoord": 15.0
+                    "xCoord": 15.0,
+                    "yCoord": 12.0
                   }
                 ]
               },
@@ -4317,8 +4317,8 @@
                     "Terri": 180,
                     "Map": 30,
                     "Zone": 0,
-                    "xCoord": 15.0,
-                    "yCoord": 11.0
+                    "xCoord": 13.6,
+                    "yCoord": 15.1
                   }
                 ]
               }
@@ -4407,8 +4407,8 @@
                     "Terri": 155,
                     "Map": 53,
                     "Zone": 0,
-                    "xCoord": 17.0,
-                    "yCoord": 17.0
+                    "xCoord": 26.0,
+                    "yCoord": 10.0
                   }
                 ]
               },
@@ -6459,8 +6459,8 @@
                     "Terri": 153,
                     "Map": 6,
                     "Zone": 0,
-                    "xCoord": 22.0,
-                    "yCoord": 19.0
+                    "xCoord": 26.0,
+                    "yCoord": 20.0
                   }
                 ]
               }
@@ -8739,7 +8739,7 @@
                     "Terri": 153,
                     "Map": 6,
                     "Zone": 0,
-                    "xCoord": 22.0,
+                    "xCoord": 26.0,
                     "yCoord": 20.0
                   }
                 ]
@@ -9898,8 +9898,8 @@
                     "Terri": 153,
                     "Map": 6,
                     "Zone": 0,
-                    "xCoord": 26.0,
-                    "yCoord": 20.0
+                    "xCoord": 26.4,
+                    "yCoord": 18.6
                   }
                 ]
               }
@@ -10129,8 +10129,8 @@
                     "Terri": 180,
                     "Map": 30,
                     "Zone": 0,
-                    "xCoord": 13.0,
-                    "yCoord": 15.0
+                    "xCoord": 13.6,
+                    "yCoord": 15.1
                   }
                 ]
               }
