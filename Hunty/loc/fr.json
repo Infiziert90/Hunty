@@ -8,7 +8,7 @@
     "description": "MainWindow.Draw"
   },
   "Error: No Grand Company": {
-    "message": "Ce personnage n'est pas affilié à une Grande Compagnie.",
+    "message": "Ce personnage n'est pas affilié à une grande compagnie.",
     "description": "MainWindow.Draw"
   },
   "Table Label: Monster": {
@@ -30,7 +30,7 @@
   "Selector: Rank": {
     "message": "Rang",
     "description": "<>c.<Draw>b__18_0"
-  },  
+  },
   "Help Message": {
     "message": "Ouvre un manuel d'aide.",
     "description": "Plugin..ctor"
