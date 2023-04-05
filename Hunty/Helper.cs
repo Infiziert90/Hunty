@@ -32,7 +32,27 @@ public static class Helper
 
         return sb.ToString();
     }
-    
+
+    public static string ToTitleCaseExtended(string s)
+    {
+        var sb        = new StringBuilder(s);
+        var lastSpace = true;
+        for (var i = 0; i < sb.Length; ++i)
+        {
+            if (sb[i] == ' ')
+            {
+                lastSpace = true;
+            }
+            else if (lastSpace)
+            {
+                lastSpace = false;
+                sb[i]     = char.ToUpperInvariant(sb[i]);
+            }
+        }
+
+        return sb.ToString();
+    }
+
     public static string CorrectGermanNames(string name, sbyte pronoun)
     {
         if (name.Contains("[a]"))
@@ -47,8 +67,8 @@ public static class Helper
 
         return name;
     }
-    
-    public static TValue GetOrCreate<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key) 
+
+    public static TValue GetOrCreate<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key)
         where TValue : new()
     {
         if (!dict.TryGetValue(key, out TValue val))
