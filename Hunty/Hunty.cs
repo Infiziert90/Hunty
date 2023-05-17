@@ -32,6 +32,7 @@ namespace Hunty
 
         public string Name => "Hunty";
         private const string CommandName = "/hunty";
+        private const string CommandXL = "/huntyxl";
 
         public static DalamudPluginInterface PluginInterface { get; private set; } = null!;
         public readonly ClientState ClientState = null!;
@@ -42,6 +43,7 @@ namespace Hunty
         private GameGui GameGui { get; init; }
         private WindowSystem WindowSystem = new("Hunty");
         private MainWindow MainWindow = null!;
+        private XLWindow XLWindow = null!;
 
         public readonly HuntingData HuntingData = null!;
         private ClassJob currentJob = new();
@@ -63,7 +65,9 @@ namespace Hunty
             Configuration.Initialize(PluginInterface);
 
             MainWindow = new MainWindow(this);
+            XLWindow = new XLWindow(this);
             WindowSystem.AddWindow(MainWindow);
+            WindowSystem.AddWindow(XLWindow);
             Localization.SetupWithLangCode(PluginInterface.UiLanguage);
 
             PluginInterface.UiBuilder.Draw += DrawUI;
@@ -73,7 +77,14 @@ namespace Hunty
             TexturesCache.Initialize();
 
             CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
-                { HelpMessage = Loc.Localize("Help Message", "Opens a small guide book.") });
+            {
+                HelpMessage = Loc.Localize("Help Message", "Opens a small guide book.")
+            });
+
+            CommandManager.AddHandler(CommandXL, new CommandInfo(OnXLCommand)
+            {
+                HelpMessage = Loc.Localize("Help Message 2", "Opens a big guide book.")
+            });
 
             try
             {
@@ -90,6 +101,7 @@ namespace Hunty
             }
 
             MainWindow.Initialize();
+            XLWindow.Initialize();
             Framework.Update += CheckJobChange;
             ClientState.Login += OnLogin;
         }
@@ -102,6 +114,7 @@ namespace Hunty
             var name = Helper.ToTitleCaseExtended(currentJob.Name);
             PluginLog.Debug($"Logging in on: {name}");
             MainWindow.SetJobAndGc(currentJob.RowId, name, GetGrandCompany(), GetCurrentGcName());
+            XLWindow.SetJobAndGc(currentJob.RowId, name, GetGrandCompany(), GetCurrentGcName());
         }
 
         private void CheckJobChange(Framework framework)
@@ -114,6 +127,7 @@ namespace Hunty
                 var name = Helper.ToTitleCaseExtended(currentJob.Name);
                 PluginLog.Debug($"Job switch: {name}");
                 MainWindow.SetJobAndGc(job.Row, name, GetGrandCompany(), GetCurrentGcName());
+                XLWindow.SetJobAndGc(job.Row, name, GetGrandCompany(), GetCurrentGcName());
             }
         }
 
@@ -125,11 +139,15 @@ namespace Hunty
             TexturesCache.Instance?.Dispose();
 
             MainWindow.Dispose();
+            XLWindow.Dispose();
             WindowSystem.RemoveWindow(MainWindow);
+            WindowSystem.RemoveWindow(XLWindow);
             CommandManager.RemoveHandler(CommandName);
+            CommandManager.RemoveHandler(CommandXL);
         }
 
         private void OnCommand(string command, string args) => MainWindow.IsOpen = true;
+        private void OnXLCommand(string command, string args) => XLWindow.IsOpen = true;
         private void DrawUI() => WindowSystem.Draw();
 
         public void SetMapMarker(MapLinkPayload map) => GameGui.OpenMapWithMapLink(map);
