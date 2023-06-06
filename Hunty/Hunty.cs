@@ -71,6 +71,7 @@ namespace Hunty
             Localization.SetupWithLangCode(PluginInterface.UiLanguage);
 
             PluginInterface.UiBuilder.Draw += DrawUI;
+            PluginInterface.UiBuilder.OpenConfigUi += OpenConfigWindow;
             PluginInterface.LanguageChanged += Localization.SetupWithLangCode;
 
             GetLocMonsterNames();
@@ -134,6 +135,8 @@ namespace Hunty
         public void Dispose()
         {
             Framework.Update -= CheckJobChange;
+            PluginInterface.UiBuilder.Draw -= DrawUI;
+            PluginInterface.UiBuilder.OpenConfigUi -= OpenConfigWindow;
             PluginInterface.LanguageChanged -= Localization.SetupWithLangCode;
 
             TexturesCache.Instance?.Dispose();
@@ -149,6 +152,7 @@ namespace Hunty
         private void OnCommand(string command, string args) => MainWindow.IsOpen = true;
         private void OnXLCommand(string command, string args) => XLWindow.IsOpen = true;
         private void DrawUI() => WindowSystem.Draw();
+        private void OpenConfigWindow() => MainWindow.Toggle();
 
         public void SetMapMarker(MapLinkPayload map) => GameGui.OpenMapWithMapLink(map);
         public unsafe void OpenDutyFinder(uint key) => AgentContentsFinder.Instance()->OpenRegularDuty(key);
