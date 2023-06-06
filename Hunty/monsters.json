@@ -4745,8 +4745,8 @@
                 "Icon": 63028,
                 "Locations": [
                   {
-                    "Terri": 154,
-                    "Map": 7,
+                    "Terri": 148,
+                    "Map": 4,
                     "Zone": 0,
                     "xCoord": 22.0,
                     "yCoord": 17.0
@@ -5969,11 +5969,11 @@
                 "Icon": 63028,
                 "Locations": [
                   {
-                    "Terri": 154,
-                    "Map": 7,
+                    "Terri": 148,
+                    "Map": 4,
                     "Zone": 0,
-                    "xCoord": 21.0,
-                    "yCoord": 16.0
+                    "xCoord": 22.0,
+                    "yCoord": 17.0
                   }
                 ]
               }
