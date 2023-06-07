@@ -46,7 +46,8 @@ namespace Hunty
         private XLWindow XLWindow = null!;
 
         public readonly HuntingData HuntingData = null!;
-        private ClassJob currentJob = new();
+        private uint currentJobId;
+        private ClassJob currentJobParent = new();
 
         public Plugin(
             [RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
@@ -110,25 +111,34 @@ namespace Hunty
         private void OnLogin(object? sender, EventArgs e)
         {
             if (ClientState.LocalPlayer == null) return;
-            currentJob = ClientState.LocalPlayer.ClassJob.GameData!.ClassJobParent.Value!;
+            var currentJobRes = ClientState.LocalPlayer.ClassJob;
+            currentJobId = currentJobRes.Id;
+            currentJobParent = currentJobRes.GameData!.ClassJobParent.Value!;
 
-            var name = Helper.ToTitleCaseExtended(currentJob.Name);
+            var name = Helper.ToTitleCaseExtended(currentJobParent.Name);
             PluginLog.Debug($"Logging in on: {name}");
-            MainWindow.SetJobAndGc(currentJob.RowId, name, GetGrandCompany(), GetCurrentGcName());
-            XLWindow.SetJobAndGc(currentJob.RowId, name, GetGrandCompany(), GetCurrentGcName());
+            MainWindow.SetJobAndGc(currentJobParent.RowId, name, GetGrandCompany(), GetCurrentGcName());
+            XLWindow.SetJobAndGc(currentJobParent.RowId, name, GetGrandCompany(), GetCurrentGcName());
         }
 
         private void CheckJobChange(Framework framework)
         {
             if (ClientState.LocalPlayer == null) return;
-            var job = ClientState.LocalPlayer.ClassJob.GameData!.ClassJobParent;
 
-            if (job.Row != currentJob.RowId) {
-                currentJob = job.Value!;
-                var name = Helper.ToTitleCaseExtended(currentJob.Name);
-                PluginLog.Debug($"Job switch: {name}");
-                MainWindow.SetJobAndGc(job.Row, name, GetGrandCompany(), GetCurrentGcName());
-                XLWindow.SetJobAndGc(job.Row, name, GetGrandCompany(), GetCurrentGcName());
+            var currentJobRes = ClientState.LocalPlayer.ClassJob;
+            if (currentJobRes.Id != currentJobId)
+            {
+                currentJobId = currentJobRes.Id;
+
+                var parentJob = currentJobRes.GameData!.ClassJobParent;
+                if (parentJob.Row != currentJobParent.RowId)
+                {
+                    currentJobParent = parentJob.Value!;
+                    var name = Helper.ToTitleCaseExtended(currentJobParent.Name);
+                    PluginLog.Debug($"Job switch: {name}");
+                    MainWindow.SetJobAndGc(parentJob.Row, name, GetGrandCompany(), GetCurrentGcName());
+                    XLWindow.SetJobAndGc(parentJob.Row, name, GetGrandCompany(), GetCurrentGcName());
+                }
             }
         }
 
