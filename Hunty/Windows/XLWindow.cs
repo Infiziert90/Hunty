@@ -163,14 +163,24 @@ public class XLWindow : Window, IDisposable
                     ImGui.TableNextColumn();
                     if (monster.IsOpenWorld)
                     {
-                        if (ImGui.Selectable($"{monster.GetLocation.Name} {monster.GetCoordinates}##{monster.Icon.ToString()}"))
+                        if (Plugin.TeleportConsumer.IsAvailable)
+                        {
+                            if (ImGui.Button($"T##{job}{monster.Icon.ToString()}"))
+                            {
+                                Plugin.TeleportToNearestAetheryte(monster.GetLocation);
+                                Plugin.SetMapMarker(monster.GetLocation.MapLink);
+                            }
+                            ImGui.SameLine();
+                        }
+
+                        if (ImGui.Selectable($"{monster.GetLocation.Name} {monster.GetCoordinates}##{job}{monster.Icon.ToString()}"))
                         {
                             Plugin.SetMapMarker(monster.GetLocation.MapLink);
                         }
                     }
                     else
                     {
-                        if (ImGui.Selectable($"{monster.GetLocation.DutyName}##{monster.Icon.ToString()}"))
+                        if (ImGui.Selectable($"{monster.GetLocation.DutyName}##{job}{monster.Icon.ToString()}"))
                         {
                             Plugin.OpenDutyFinder(monster.GetLocation.DutyKey);
                         }

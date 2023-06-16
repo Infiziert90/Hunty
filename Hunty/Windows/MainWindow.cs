@@ -6,6 +6,7 @@ using CheapLoc;
 using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using Hunty.Data;
+using Hunty.IPC;
 using ImGuiNET;
 using Lumina.Excel.GeneratedSheets;
 
@@ -156,6 +157,16 @@ public class MainWindow : Window, IDisposable
                 ImGui.TableNextColumn();
                 if (monster.IsOpenWorld)
                 {
+                    if (Plugin.TeleportConsumer.IsAvailable)
+                    {
+                        if (ImGui.Button($"T##{monster.Icon.ToString()}"))
+                        {
+                            Plugin.TeleportToNearestAetheryte(monster.GetLocation);
+                            Plugin.SetMapMarker(monster.GetLocation.MapLink);
+                        }
+                        ImGui.SameLine();
+                    }
+
                     if (ImGui.Selectable($"{monster.GetLocation.Name} {monster.GetCoordinates}##{monster.Icon.ToString()}"))
                     {
                         Plugin.SetMapMarker(monster.GetLocation.MapLink);

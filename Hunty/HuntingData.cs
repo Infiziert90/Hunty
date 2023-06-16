@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Lumina.Excel.GeneratedSheets;
 using Newtonsoft.Json;
@@ -55,13 +56,14 @@ public class HuntingMonsterLocation
     [JsonIgnore] public string DutyName = string.Empty;
     [JsonIgnore] public uint DutyKey = 0;
     [JsonIgnore] public MapLinkPayload MapLink = null!;
-    
+    [JsonIgnore] public Vector2 Coords => new(xCoord, yCoord);
+
     public HuntingMonsterLocation(uint terri, uint map)
     {
         Terri = terri;
         Map = map;
     }
-    
+
     [JsonConstructor]
     public HuntingMonsterLocation(uint terri, uint map, uint zone)
     {
@@ -79,13 +81,13 @@ public class HuntingMonsterLocation
         MapLink = new MapLinkPayload(Terri, Map, xCoord, yCoord);
 
         if (Zone == 0) return;
-        
+
         var zoneSheet = Plugin.Data.GetExcelSheet<TerritoryType>()!.GetRow(Zone)!;
         var content = contentSheet.FirstOrDefault(x => x.TerritoryType.Row == zoneSheet.RowId);
         if (content == null) return;
-        
+
         if (ToTitleCaseExtended(content.Name, 0) == "") return;
-        
+
         IsDuty = true;
         DutyName = ToTitleCaseExtended(content.Name, 0);
         DutyKey = content.RowId;
@@ -96,7 +98,7 @@ public struct MonsterProgress
 {
     public readonly int Killed = 0;
     public readonly bool Done = false;
-    
+
     public MonsterProgress(int killed) => Killed = killed;
     public MonsterProgress(bool done) => Done = done;
 }

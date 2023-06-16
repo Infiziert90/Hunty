@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using CheapLoc;
 using Dalamud;
 using Hunty.Windows;
@@ -19,6 +20,8 @@ using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Hunty.Data;
+using Hunty.IPC;
+using Lumina.Excel;
 using Lumina.Excel.GeneratedSheets;
 using Newtonsoft.Json;
 using GrandCompany = Lumina.Excel.GeneratedSheets.GrandCompany;
@@ -28,19 +31,21 @@ namespace Hunty
 {
     public sealed class Plugin : IDalamudPlugin
     {
+        [PluginService] public static DalamudPluginInterface PluginInterface { get; set; } = null!;
         [PluginService] public static DataManager Data { get; set; } = null!;
+        [PluginService] public static ChatGui ChatGui { get; set; } = null!;
+        [PluginService] public static ClientState ClientState { get; set; } = null!;
+
+        [PluginService] private static CommandManager CommandManager { get; set; } = null!;
+        [PluginService] private static GameGui GameGui { get; set; } = null!;
+        [PluginService] private static Framework Framework { get; set; } = null!;
 
         public string Name => "Hunty";
         private const string CommandName = "/hunty";
         private const string CommandXL = "/huntyxl";
 
-        public static DalamudPluginInterface PluginInterface { get; private set; } = null!;
-        public readonly ClientState ClientState = null!;
         private Localization Localization = new();
         private Configuration Configuration { get; init; }
-        private CommandManager CommandManager { get; init; }
-        private Framework Framework { get; init; }
-        private GameGui GameGui { get; init; }
         private WindowSystem WindowSystem = new("Hunty");
         private MainWindow MainWindow = null!;
         private XLWindow XLWindow = null!;
@@ -49,21 +54,22 @@ namespace Hunty
         private uint currentJobId;
         private ClassJob currentJobParent = new();
 
-        public Plugin(
-            [RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
-            [RequiredVersion("1.0")] Framework framework,
-            [RequiredVersion("1.0")] GameGui gameGui,
-            [RequiredVersion("1.0")] CommandManager commandManager,
-            [RequiredVersion("1.0")] ClientState clientState)
-        {
-            PluginInterface = pluginInterface;
-            Framework = framework;
-            GameGui = gameGui;
-            CommandManager = commandManager;
-            ClientState = clientState;
+        public static TeleportConsumer TeleportConsumer = null!;
 
+        private static ExcelSheet<Map> MapSheet = null!;
+        private static ExcelSheet<MapMarker> MapMarkerSheet = null!;
+        private static ExcelSheet<Aetheryte> AetheryteSheet = null!;
+
+        public Plugin()
+        {
             Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
             Configuration.Initialize(PluginInterface);
+
+            MapSheet = Data.GetExcelSheet<Map>()!;
+            MapMarkerSheet = Data.GetExcelSheet<MapMarker>()!;
+            AetheryteSheet = Data.GetExcelSheet<Aetheryte>()!;
+
+            TeleportConsumer = new TeleportConsumer();
 
             MainWindow = new MainWindow(this);
             XLWindow = new XLWindow(this);
@@ -230,6 +236,46 @@ namespace Hunty
                 fill[Helper.ToTitleCaseExtended(bNpcEnglish.Singular, bNpcEnglish.Article)] = correctedName;
             }
 
+        }
+
+        // From: https://github.com/SheepGoMeh/HuntBuddy/blob/5a92e0e104839c30eaf398790dee32b793c3c53e/HuntBuddy/Location.cs#L520
+        public static void TeleportToNearestAetheryte(HuntingMonsterLocation location)
+        {
+            var map = MapSheet.GetRow(location.Map)!;
+            var nearestAetheryteId = MapMarkerSheet
+                .Where(x => x.DataType == 3 && x.RowId == map.MapMarkerRange)
+                .Select(
+                    marker => new
+                    {
+                        distance = Vector2.DistanceSquared(
+                            location.Coords,
+                            ConvertLocationToRaw(marker.X, marker.Y, map.SizeFactor)),
+                        rowId = marker.DataKey
+                    })
+                .MinBy(x => x.distance).rowId;
+
+            // Support the unique case of aetheryte not being in the same map
+            var nearestAetheryte = location.Terri == 399
+                ? map.TerritoryType?.Value?.Aetheryte.Value
+                : AetheryteSheet.FirstOrDefault(x => x.IsAetheryte && x.Territory.Row == location.Terri && x.RowId == nearestAetheryteId);
+
+            if (nearestAetheryte == null)
+                return;
+
+            TeleportConsumer.UseTeleport(nearestAetheryte.RowId);
+        }
+
+        private static Vector2 ConvertLocationToRaw(int x, int y, float scale)
+        {
+            var num = scale / 100f;
+            return new Vector2(ConvertRawToMap((int)((x - 1024) * num * 1000f), scale), ConvertRawToMap((int)((y - 1024) * num * 1000f), scale));
+        }
+
+        private static float ConvertRawToMap(int pos, float scale)
+        {
+            var num1 = scale / 100f;
+            var num2 = (float)(pos * (double)num1 / 1000.0f);
+            return (40.96f / num1 * ((num2 + 1024.0f) / 2048.0f)) + 1.0f;
         }
 
         // If square ever decides to change the Hunting Log~
