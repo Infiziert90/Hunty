@@ -114,9 +114,11 @@ namespace Hunty
             ClientState.Login += OnLogin;
         }
 
-        private void OnLogin(object? sender, EventArgs e)
+        private void OnLogin(object _, EventArgs __)
         {
-            if (ClientState.LocalPlayer == null) return;
+            if (ClientState.LocalPlayer == null)
+                return;
+
             var currentJobRes = ClientState.LocalPlayer.ClassJob;
             currentJobId = currentJobRes.Id;
             currentJobParent = currentJobRes.GameData!.ClassJobParent.Value!;
@@ -129,7 +131,8 @@ namespace Hunty
 
         private void CheckJobChange(Framework framework)
         {
-            if (ClientState.LocalPlayer == null) return;
+            if (ClientState.LocalPlayer == null)
+                return;
 
             var currentJobRes = ClientState.LocalPlayer.ClassJob;
             if (currentJobRes.Id != currentJobId)

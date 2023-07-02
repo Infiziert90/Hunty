@@ -6,7 +6,6 @@ using CheapLoc;
 using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using Hunty.Data;
-using Hunty.IPC;
 using ImGuiNET;
 using Lumina.Excel.GeneratedSheets;
 
@@ -159,7 +158,7 @@ public class MainWindow : Window, IDisposable
                 {
                     if (Plugin.TeleportConsumer.IsAvailable)
                     {
-                        if (ImGui.Button($"T##{monster.Icon.ToString()}"))
+                        if (ImGui.Button($"T##{monster.Name}{monster.Icon.ToString()}{monster.Count}"))
                         {
                             Plugin.TeleportToNearestAetheryte(monster.GetLocation);
                             Plugin.SetMapMarker(monster.GetLocation.MapLink);

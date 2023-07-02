@@ -165,7 +165,7 @@ public class XLWindow : Window, IDisposable
                     {
                         if (Plugin.TeleportConsumer.IsAvailable)
                         {
-                            if (ImGui.Button($"T##{job}{monster.Icon.ToString()}"))
+                            if (ImGui.Button($"T##{job}{monster.Name}{monster.Icon.ToString()}{monster.Count}"))
                             {
                                 Plugin.TeleportToNearestAetheryte(monster.GetLocation);
                                 Plugin.SetMapMarker(monster.GetLocation.MapLink);
