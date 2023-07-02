@@ -9,7 +9,7 @@ namespace Hunty;
 
 public class Localization
 {
-    public static readonly string[] ApplicableLangCodes = { "de", "ja", "fr" };
+    public static readonly string[] ApplicableLangCodes = { "de", "ja", "fr" , "zh"};
     
     private const string FallbackLangCode = "en";
     private readonly string locResourceDirectory = "loc";

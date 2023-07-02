@@ -1,0 +1,38 @@
+{
+  "Button: Grand Company": {
+    "message": "大国防联军",
+    "description": "MainWindow.Draw"
+  },
+  "Button: Jobs": {
+    "message": "特职",
+    "description": "MainWindow.Draw"
+  },
+  "Error: No Grand Company": {
+    "message": "这个角色尚未加入大国防联军",
+    "description": "MainWindow.Draw"
+  },
+  "Table Label: Monster": {
+    "message": "怪物",
+    "description": "MainWindow.Draw"
+  },
+  "Table Label: Done": {
+    "message": "完成",
+    "description": "MainWindow.Draw"
+  },
+  "Table Label: Dungeon": {
+    "message": "迷宫探险",
+    "description": "MainWindow.Draw"
+  },
+  "Table Label: Coords": {
+    "message": "坐标",
+    "description": "MainWindow.Draw"
+  },
+  "Selector: Rank": {
+    "message": "Rank",
+    "description": "<>c.<Draw>b__18_0"
+  },  
+  "Help Message": {
+    "message": "打开一个小指南",
+    "description": "Plugin..ctor"
+  }
+}
