@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Dalamud.Interface.Internal;
 using Dalamud.Utility;
-using ImGuiScene;
 using Lumina.Data.Files;
 
 namespace Hunty;
@@ -10,9 +10,9 @@ namespace Hunty;
 //From: https://github.com/Tischel/ActionTimeline
 public class TexturesCache : IDisposable
 {
-    private Dictionary<uint, TextureWrap> _cache = new();
+    private Dictionary<uint, IDalamudTextureWrap> _cache = new();
 
-    public TextureWrap GetTextureFromIconId(uint iconId)
+    public IDalamudTextureWrap GetTextureFromIconId(uint iconId)
     {
         if (_cache.TryGetValue(iconId, out var texture))
         {
@@ -25,7 +25,7 @@ public class TexturesCache : IDisposable
 
         return newTexture;
     }
-    
+
     #region singleton
     public static void Initialize() { Instance = new TexturesCache(); }
     public static TexturesCache Instance { get; private set; } = null!;
@@ -48,7 +48,7 @@ public class TexturesCache : IDisposable
             return;
         }
 
-        foreach (TextureWrap tex in _cache.Keys.Select(key => _cache[key]))
+        foreach (var tex in _cache.Keys.Select(key => _cache[key]))
         {
             tex?.Dispose();
         }

@@ -51,7 +51,7 @@ public class TeleportConsumer
         }
         catch (Exception e)
         {
-            PluginLog.LogDebug($"Failed to subscribe to Teleport\nReason: {e}");
+            Plugin.Log.Debug($"Failed to subscribe to Teleport\nReason: {e}");
         }
     }
 

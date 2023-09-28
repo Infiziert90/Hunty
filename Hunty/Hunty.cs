@@ -1,5 +1,4 @@
 ﻿using Dalamud.Game;
-using Dalamud.Game.Gui;
 using Dalamud.IoC;
 using Dalamud.Logging;
 using Dalamud.Plugin;
@@ -11,11 +10,10 @@ using System.Numerics;
 using CheapLoc;
 using Dalamud;
 using Hunty.Windows;
-using Dalamud.Data;
-using Dalamud.Game.ClientState;
 using Dalamud.Game.Command;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Interface.Windowing;
+using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
@@ -24,6 +22,7 @@ using Hunty.IPC;
 using Lumina.Excel;
 using Lumina.Excel.GeneratedSheets;
 using Newtonsoft.Json;
+
 using GrandCompany = Lumina.Excel.GeneratedSheets.GrandCompany;
 using Map = Lumina.Excel.GeneratedSheets.Map;
 
@@ -32,15 +31,14 @@ namespace Hunty
     public sealed class Plugin : IDalamudPlugin
     {
         [PluginService] public static DalamudPluginInterface PluginInterface { get; set; } = null!;
-        [PluginService] public static DataManager Data { get; set; } = null!;
-        [PluginService] public static ChatGui ChatGui { get; set; } = null!;
-        [PluginService] public static ClientState ClientState { get; set; } = null!;
+        [PluginService] public static IDataManager Data { get; set; } = null!;
+        [PluginService] public static IChatGui ChatGui { get; set; } = null!;
+        [PluginService] public static IClientState ClientState { get; set; } = null!;
+        [PluginService] public static ICommandManager CommandManager { get; set; } = null!;
+        [PluginService] public static IGameGui GameGui { get; set; } = null!;
+        [PluginService] public static IFramework Framework { get; set; } = null!;
+        [PluginService] public static IPluginLog Log { get; set; } = null!;
 
-        [PluginService] private static CommandManager CommandManager { get; set; } = null!;
-        [PluginService] private static GameGui GameGui { get; set; } = null!;
-        [PluginService] private static Framework Framework { get; set; } = null!;
-
-        public string Name => "Hunty";
         private const string CommandName = "/hunty";
         private const string CommandXL = "/huntyxl";
 
@@ -51,8 +49,8 @@ namespace Hunty
         private XLWindow XLWindow = null!;
 
         public readonly HuntingData HuntingData = null!;
-        private uint currentJobId;
-        private ClassJob currentJobParent = new();
+        private uint CurrentJobId;
+        private ClassJob CurrentJobParent = new();
 
         public static TeleportConsumer TeleportConsumer = null!;
 
@@ -96,7 +94,7 @@ namespace Hunty
 
             try
             {
-                PluginLog.Debug("Loading Monsters.");
+                Log.Debug("Loading Monsters.");
 
                 var path = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "monsters.json");
                 var jsonString = File.ReadAllText(path);
@@ -104,8 +102,8 @@ namespace Hunty
             }
             catch (Exception e)
             {
-                PluginLog.Error("There was a problem building the HuntingData.");
-                PluginLog.Error(e.Message);
+                Log.Error("There was a problem building the HuntingData.");
+                Log.Error(e.Message);
             }
 
             MainWindow.Initialize();
@@ -114,37 +112,37 @@ namespace Hunty
             ClientState.Login += OnLogin;
         }
 
-        private void OnLogin(object _, EventArgs __)
+        private void OnLogin()
         {
             if (ClientState.LocalPlayer == null)
                 return;
 
             var currentJobRes = ClientState.LocalPlayer.ClassJob;
-            currentJobId = currentJobRes.Id;
-            currentJobParent = currentJobRes.GameData!.ClassJobParent.Value!;
+            CurrentJobId = currentJobRes.Id;
+            CurrentJobParent = currentJobRes.GameData!.ClassJobParent.Value!;
 
-            var name = Helper.ToTitleCaseExtended(currentJobParent.Name);
-            PluginLog.Debug($"Logging in on: {name}");
-            MainWindow.SetJobAndGc(currentJobParent.RowId, name, GetGrandCompany(), GetCurrentGcName());
-            XLWindow.SetJobAndGc(currentJobParent.RowId, name, GetGrandCompany(), GetCurrentGcName());
+            var name = Helper.ToTitleCaseExtended(CurrentJobParent.Name);
+            Log.Debug($"Logging in on: {name}");
+            MainWindow.SetJobAndGc(CurrentJobParent.RowId, name, GetGrandCompany(), GetCurrentGcName());
+            XLWindow.SetJobAndGc(CurrentJobParent.RowId, name, GetGrandCompany(), GetCurrentGcName());
         }
 
-        private void CheckJobChange(Framework framework)
+        private void CheckJobChange(IFramework framework)
         {
             if (ClientState.LocalPlayer == null)
                 return;
 
             var currentJobRes = ClientState.LocalPlayer.ClassJob;
-            if (currentJobRes.Id != currentJobId)
+            if (currentJobRes.Id != CurrentJobId)
             {
-                currentJobId = currentJobRes.Id;
+                CurrentJobId = currentJobRes.Id;
 
                 var parentJob = currentJobRes.GameData!.ClassJobParent;
-                if (parentJob.Row != currentJobParent.RowId)
+                if (parentJob.Row != CurrentJobParent.RowId)
                 {
-                    currentJobParent = parentJob.Value!;
-                    var name = Helper.ToTitleCaseExtended(currentJobParent.Name);
-                    PluginLog.Debug($"Job switch: {name}");
+                    CurrentJobParent = parentJob.Value!;
+                    var name = Helper.ToTitleCaseExtended(CurrentJobParent.Name);
+                    Log.Debug($"Job switch: {name}");
                     MainWindow.SetJobAndGc(parentJob.Row, name, GetGrandCompany(), GetCurrentGcName());
                     XLWindow.SetJobAndGc(parentJob.Row, name, GetGrandCompany(), GetCurrentGcName());
                 }
@@ -358,15 +356,15 @@ namespace Hunty
                 }
                 catch (Exception e)
                 {
-                    PluginLog.Error(e.Message);
+                    Log.Error(e.Message);
                 }
             }
 
             var l = JsonConvert.SerializeObject(hunt, new JsonSerializerSettings { Formatting = Formatting.Indented,});
 
             var path = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "monstersTest.json");
-            PluginLog.Information($"Writing monster json");
-            PluginLog.Information(path);
+            Log.Information($"Writing monster json");
+            Log.Information(path);
             File.WriteAllText(path, l);
         }
         #endregion

@@ -5,7 +5,7 @@
 		<LangVersion>latest</LangVersion>
 		<PackageId>Hunty</PackageId>
 		<Authors>Infi</Authors>
-		<Version>1.2.1.1</Version>
+		<Version>1.2.1.2</Version>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -37,7 +37,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-        <PackageReference Include="DalamudPackager" Version="2.1.10" />
+        <PackageReference Include="DalamudPackager" Version="2.1.12" />
     </ItemGroup>
 
 
