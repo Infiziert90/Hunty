@@ -1,6 +1,4 @@
-﻿using Dalamud.Game;
-using Dalamud.IoC;
-using Dalamud.Logging;
+﻿using Dalamud.IoC;
 using Dalamud.Plugin;
 using System;
 using System.Collections.Generic;
