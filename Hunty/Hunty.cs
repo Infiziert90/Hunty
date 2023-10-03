@@ -36,6 +36,7 @@ namespace Hunty
         [PluginService] public static IGameGui GameGui { get; set; } = null!;
         [PluginService] public static IFramework Framework { get; set; } = null!;
         [PluginService] public static IPluginLog Log { get; set; } = null!;
+        [PluginService] public static ITextureProvider Texture { get; set; } = null!;
 
         private const string CommandName = "/hunty";
         private const string CommandXL = "/huntyxl";
@@ -78,7 +79,6 @@ namespace Hunty
             PluginInterface.LanguageChanged += Localization.SetupWithLangCode;
 
             GetLocMonsterNames();
-            TexturesCache.Initialize();
 
             CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
             {
@@ -153,8 +153,6 @@ namespace Hunty
             PluginInterface.UiBuilder.Draw -= DrawUI;
             PluginInterface.UiBuilder.OpenConfigUi -= OpenConfigWindow;
             PluginInterface.LanguageChanged -= Localization.SetupWithLangCode;
-
-            TexturesCache.Instance?.Dispose();
 
             MainWindow.Dispose();
             XLWindow.Dispose();
