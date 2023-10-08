@@ -17,6 +17,20 @@
                     "Zone": 0,
                     "xCoord": 27.0,
                     "yCoord": 24.0
+                  },
+                  {
+                    "Terri": 134,
+                    "Map": 15,
+                    "Zone": 0,
+                    "xCoord": 23.0,
+                    "yCoord": 24.0
+                  },
+                  {
+                    "Terri": 148,
+                    "Map": 4,
+                    "Zone": 0,
+                    "xCoord": 24.0,
+                    "yCoord": 18.0
                   }
                 ]
               }
@@ -1252,6 +1266,13 @@
                     "Zone": 0,
                     "xCoord": 21,
                     "yCoord": 25
+                  },
+                  {
+                    "Terri": 135,
+                    "Map": 16,
+                    "Zone": 0,
+                    "xCoord": 32.4,
+                    "yCoord": 15.7
                   }
                 ]
               }
@@ -1455,6 +1476,20 @@
                     "Zone": 0,
                     "xCoord": 17.0,
                     "yCoord": 16.0
+                  },
+                  {
+                    "Terri": 148,
+                    "Map": 4,
+                    "Zone": 0,
+                    "xCoord": 26.0,
+                    "yCoord": 30.0
+                  },
+                  {
+                    "Terri": 138,
+                    "Map": 18,
+                    "Zone": 0,
+                    "xCoord": 31.6,
+                    "yCoord": 29.7
                   }
                 ]
               },
@@ -2381,6 +2416,20 @@
                     "Zone": 0,
                     "xCoord": 23.0,
                     "yCoord": 24.0
+                  },
+                  {
+                    "Terri": 140,
+                    "Map": 20,
+                    "Zone": 0,
+                    "xCoord": 27.0,
+                    "yCoord": 24.0
+                  },
+                  {
+                    "Terri": 148,
+                    "Map": 4,
+                    "Zone": 0,
+                    "xCoord": 24.0,
+                    "yCoord": 18.0
                   }
                 ]
               }
@@ -2575,6 +2624,13 @@
                     "Zone": 0,
                     "xCoord": 26.0,
                     "yCoord": 37.0
+                  },
+                  {
+                    "Terri": 148,
+                    "Map": 4,
+                    "Zone": 0,
+                    "xCoord": 19.0,
+                    "yCoord": 27.0
                   }
                 ]
               }
@@ -3521,6 +3577,20 @@
                     "Zone": 0,
                     "xCoord": 24.0,
                     "yCoord": 18.0
+                  },
+                  {
+                    "Terri": 140,
+                    "Map": 20,
+                    "Zone": 0,
+                    "xCoord": 27.0,
+                    "yCoord": 24.0
+                  },
+                  {
+                    "Terri": 134,
+                    "Map": 15,
+                    "Zone": 0,
+                    "xCoord": 23.0,
+                    "yCoord": 24.0
                   }
                 ]
               }
@@ -3743,6 +3813,20 @@
                     "Zone": 0,
                     "xCoord": 26.0,
                     "yCoord": 30.0
+                  },
+                  {
+                    "Terri": 140,
+                    "Map": 20,
+                    "Zone": 0,
+                    "xCoord": 17.0,
+                    "yCoord": 16.0
+                  },
+                  {
+                    "Terri": 138,
+                    "Map": 18,
+                    "Zone": 0,
+                    "xCoord": 31.6,
+                    "yCoord": 29.7
                   }
                 ]
               }
@@ -4731,6 +4815,20 @@
                     "Zone": 0,
                     "xCoord": 25.0,
                     "yCoord": 27.0
+                  },
+                  {
+                    "Terri": 140,
+                    "Map": 20,
+                    "Zone": 0,
+                    "xCoord": 27.0,
+                    "yCoord": 24.0
+                  },
+                  {
+                    "Terri": 134,
+                    "Map": 15,
+                    "Zone": 0,
+                    "xCoord": 23.0,
+                    "yCoord": 24.0
                   }
                 ]
               }
@@ -4944,6 +5042,20 @@
                     "Zone": 0,
                     "xCoord": 26.0,
                     "yCoord": 30.0
+                  },
+                  {
+                    "Terri": 140,
+                    "Map": 20,
+                    "Zone": 0,
+                    "xCoord": 17.0,
+                    "yCoord": 16.0
+                  },
+                  {
+                    "Terri": 138,
+                    "Map": 18,
+                    "Zone": 0,
+                    "xCoord": 31.6,
+                    "yCoord": 29.7
                   }
                 ]
               }
@@ -5955,6 +6067,20 @@
                     "Zone": 0,
                     "xCoord": 23.0,
                     "yCoord": 17.0
+                  },
+                  {
+                    "Terri": 140,
+                    "Map": 20,
+                    "Zone": 0,
+                    "xCoord": 27.0,
+                    "yCoord": 24.0
+                  },
+                  {
+                    "Terri": 134,
+                    "Map": 15,
+                    "Zone": 0,
+                    "xCoord": 23.0,
+                    "yCoord": 24.0
                   }
                 ]
               }
@@ -6168,6 +6294,20 @@
                     "Zone": 0,
                     "xCoord": 28.9,
                     "yCoord": 30.2
+                  },
+                  {
+                    "Terri": 140,
+                    "Map": 20,
+                    "Zone": 0,
+                    "xCoord": 17.0,
+                    "yCoord": 16.0
+                  },
+                  {
+                    "Terri": 138,
+                    "Map": 18,
+                    "Zone": 0,
+                    "xCoord": 31.6,
+                    "yCoord": 29.7
                   }
                 ]
               },
@@ -6201,6 +6341,13 @@
                     "Zone": 0,
                     "xCoord": 19.0,
                     "yCoord": 27.0
+                  },
+                  {
+                    "Terri": 135,
+                    "Map": 16,
+                    "Zone": 0,
+                    "xCoord": 26.0,
+                    "yCoord": 37.0
                   }
                 ]
               }
@@ -7053,6 +7200,20 @@
                     "Zone": 0,
                     "xCoord": 28.0,
                     "yCoord": 24.0
+                  },
+                  {
+                    "Terri": 134,
+                    "Map": 15,
+                    "Zone": 0,
+                    "xCoord": 23.0,
+                    "yCoord": 24.0
+                  },
+                  {
+                    "Terri": 148,
+                    "Map": 4,
+                    "Zone": 0,
+                    "xCoord": 24.0,
+                    "yCoord": 18.0
                   }
                 ]
               }
@@ -8249,6 +8410,20 @@
                     "Zone": 0,
                     "xCoord": 22.0,
                     "yCoord": 24.0
+                  },
+                  {
+                    "Terri": 140,
+                    "Map": 20,
+                    "Zone": 0,
+                    "xCoord": 27.0,
+                    "yCoord": 24.0
+                  },
+                  {
+                    "Terri": 148,
+                    "Map": 4,
+                    "Zone": 0,
+                    "xCoord": 24.0,
+                    "yCoord": 18.0
                   }
                 ]
               }
@@ -8344,6 +8519,13 @@
                     "Zone": 0,
                     "xCoord": 32.4,
                     "yCoord": 15.7
+                  },
+                  {
+                    "Terri": 140,
+                    "Map": 20,
+                    "Zone": 0,
+                    "xCoord": 21,
+                    "yCoord": 25
                   }
                 ]
               }
@@ -8514,6 +8696,20 @@
                     "Zone": 0,
                     "xCoord": 31.6,
                     "yCoord": 29.7
+                  },
+                  {
+                    "Terri": 140,
+                    "Map": 20,
+                    "Zone": 0,
+                    "xCoord": 17.0,
+                    "yCoord": 16.0
+                  },
+                  {
+                    "Terri": 148,
+                    "Map": 4,
+                    "Zone": 0,
+                    "xCoord": 26.0,
+                    "yCoord": 30.0
                   }
                 ]
               }

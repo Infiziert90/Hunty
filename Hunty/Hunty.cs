@@ -40,12 +40,14 @@ namespace Hunty
 
         private const string CommandName = "/hunty";
         private const string CommandXL = "/huntyxl";
+        private const string CommandCompanion = "/huntycompanion";
 
         private Localization Localization = new();
         private Configuration Configuration { get; init; }
         private WindowSystem WindowSystem = new("Hunty");
         private MainWindow MainWindow = null!;
         private XLWindow XLWindow = null!;
+        private CompanionWindow CompanionWindow = null;
 
         public readonly HuntingData HuntingData = null!;
         private uint CurrentJobId;
@@ -70,8 +72,10 @@ namespace Hunty
 
             MainWindow = new MainWindow(this);
             XLWindow = new XLWindow(this);
+            CompanionWindow = new CompanionWindow(this);
             WindowSystem.AddWindow(MainWindow);
             WindowSystem.AddWindow(XLWindow);
+            WindowSystem.AddWindow(CompanionWindow);
             Localization.SetupWithLangCode(PluginInterface.UiLanguage);
 
             PluginInterface.UiBuilder.Draw += DrawUI;
@@ -90,6 +94,11 @@ namespace Hunty
                 HelpMessage = Loc.Localize("Help Message 2", "Opens a big guide book.")
             });
 
+            CommandManager.AddHandler(CommandCompanion, new CommandInfo(OnCompanionCommand)
+            {
+                HelpMessage = Loc.Localize("Help Message 3", "Opens a big guide book with hunts grouped by area.")
+            });
+
             try
             {
                 Log.Debug("Loading Monsters.");
@@ -106,8 +115,10 @@ namespace Hunty
 
             MainWindow.Initialize();
             XLWindow.Initialize();
+            CompanionWindow.Initialize();
             Framework.Update += CheckJobChange;
             ClientState.Login += OnLogin;
+            ClientState.TerritoryChanged += OnTerritoryChange;
         }
 
         private void OnLogin()
@@ -123,6 +134,13 @@ namespace Hunty
             Log.Debug($"Logging in on: {name}");
             MainWindow.SetJobAndGc(CurrentJobParent.RowId, name, GetGrandCompany(), GetCurrentGcName());
             XLWindow.SetJobAndGc(CurrentJobParent.RowId, name, GetGrandCompany(), GetCurrentGcName());
+            CompanionWindow.SetJobAndGc(CurrentJobParent.RowId, name, GetGrandCompany(), GetCurrentGcName());
+            CompanionWindow.SetTerritory(ClientState.TerritoryType);
+        }
+
+        private void OnTerritoryChange(ushort territory)
+        {
+            CompanionWindow.SetTerritory(territory);
         }
 
         private void CheckJobChange(IFramework framework)
@@ -143,6 +161,8 @@ namespace Hunty
                     Log.Debug($"Job switch: {name}");
                     MainWindow.SetJobAndGc(parentJob.Row, name, GetGrandCompany(), GetCurrentGcName());
                     XLWindow.SetJobAndGc(parentJob.Row, name, GetGrandCompany(), GetCurrentGcName());
+                    CompanionWindow.SetJobAndGc(parentJob.Row, name, GetGrandCompany(), GetCurrentGcName());
+                    CompanionWindow.SetTerritory(ClientState.TerritoryType);
                 }
             }
         }
@@ -156,14 +176,18 @@ namespace Hunty
 
             MainWindow.Dispose();
             XLWindow.Dispose();
+            CompanionWindow.Dispose();
             WindowSystem.RemoveWindow(MainWindow);
             WindowSystem.RemoveWindow(XLWindow);
+            WindowSystem.RemoveWindow(CompanionWindow);
             CommandManager.RemoveHandler(CommandName);
             CommandManager.RemoveHandler(CommandXL);
+            CommandManager.RemoveHandler(CommandCompanion);
         }
 
         private void OnCommand(string command, string args) => MainWindow.IsOpen = true;
         private void OnXLCommand(string command, string args) => XLWindow.IsOpen = true;
+        private void OnCompanionCommand(string command, string args) => CompanionWindow.IsOpen = true;
         private void DrawUI() => WindowSystem.Draw();
         private void OpenConfigWindow() => MainWindow.Toggle();
 
