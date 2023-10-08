@@ -17,6 +17,9 @@ Let's go hunt together, finally finishing that old log of yours~
 ## XL Book
 ![Book](Hunty/images/xl.png)
 
+## Companion Book
+![Book](Hunty/images/companion.png)
+
 ## Localized languages (de, fr, jp)  
 ![Japanese](Hunty/images/loc.png)
 
