@@ -5,7 +5,7 @@ using System.Numerics;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Lumina.Excel.GeneratedSheets;
 using Newtonsoft.Json;
-using static Hunty.Helper;
+using static Hunty.Utils;
 
 namespace Hunty;
 

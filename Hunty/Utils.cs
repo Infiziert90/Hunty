@@ -7,7 +7,7 @@ using Lumina.Text;
 
 namespace Hunty;
 
-public static class Helper
+public static class Utils
 {
     // From Ottermandias
     public static string ToTitleCaseExtended(SeString s, sbyte article = 0)
@@ -68,8 +68,7 @@ public static class Helper
         return name;
     }
 
-    public static TValue GetOrCreate<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key)
-        where TValue : new()
+    public static TValue GetOrCreate<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key) where TValue : new()
     {
         if (!dict.TryGetValue(key, out TValue val))
         {

@@ -45,9 +45,9 @@ namespace Hunty
         private Localization Localization = new();
         private Configuration Configuration { get; init; }
         private WindowSystem WindowSystem = new("Hunty");
-        private MainWindow MainWindow = null!;
-        private XLWindow XLWindow = null!;
-        private CompanionWindow CompanionWindow = null;
+        private MainWindow MainWindow;
+        private XLWindow XLWindow;
+        private CompanionWindow CompanionWindow;
 
         public readonly HuntingData HuntingData = null!;
         private uint CurrentJobId;
@@ -63,6 +63,7 @@ namespace Hunty
         {
             Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
             Configuration.Initialize(PluginInterface);
+            Localization.SetupWithLangCode(PluginInterface.UiLanguage);
 
             MapSheet = Data.GetExcelSheet<Map>()!;
             MapMarkerSheet = Data.GetExcelSheet<MapMarker>()!;
@@ -76,7 +77,6 @@ namespace Hunty
             WindowSystem.AddWindow(MainWindow);
             WindowSystem.AddWindow(XLWindow);
             WindowSystem.AddWindow(CompanionWindow);
-            Localization.SetupWithLangCode(PluginInterface.UiLanguage);
 
             PluginInterface.UiBuilder.Draw += DrawUI;
             PluginInterface.UiBuilder.OpenConfigUi += OpenConfigWindow;
@@ -130,7 +130,7 @@ namespace Hunty
             CurrentJobId = currentJobRes.Id;
             CurrentJobParent = currentJobRes.GameData!.ClassJobParent.Value!;
 
-            var name = Helper.ToTitleCaseExtended(CurrentJobParent.Name);
+            var name = Utils.ToTitleCaseExtended(CurrentJobParent.Name);
             Log.Debug($"Logging in on: {name}");
             MainWindow.SetJobAndGc(CurrentJobParent.RowId, name, GetGrandCompany(), GetCurrentGcName());
             XLWindow.SetJobAndGc(CurrentJobParent.RowId, name, GetGrandCompany(), GetCurrentGcName());
@@ -157,7 +157,7 @@ namespace Hunty
                 if (parentJob.Row != CurrentJobParent.RowId)
                 {
                     CurrentJobParent = parentJob.Value!;
-                    var name = Helper.ToTitleCaseExtended(CurrentJobParent.Name);
+                    var name = Utils.ToTitleCaseExtended(CurrentJobParent.Name);
                     Log.Debug($"Job switch: {name}");
                     MainWindow.SetJobAndGc(parentJob.Row, name, GetGrandCompany(), GetCurrentGcName());
                     XLWindow.SetJobAndGc(parentJob.Row, name, GetGrandCompany(), GetCurrentGcName());
@@ -194,7 +194,7 @@ namespace Hunty
         public void SetMapMarker(MapLinkPayload map) => GameGui.OpenMapWithMapLink(map);
         public unsafe void OpenDutyFinder(uint key) => AgentContentsFinder.Instance()->OpenRegularDuty(key);
         public unsafe uint GetGrandCompany() => UIState.Instance()->PlayerState.GrandCompany + (uint) 10000;
-        public string GetCurrentGcName() => Helper.ToTitleCaseExtended(Data.GetExcelSheet<GrandCompany>()!.GetRow(GetGrandCompany() - 10000)!.Name);
+        public string GetCurrentGcName() => Utils.ToTitleCaseExtended(Data.GetExcelSheet<GrandCompany>()!.GetRow(GetGrandCompany() - 10000)!.Name);
         public unsafe int GetRankFromMemory(uint job) => MonsterNoteManager.Instance()->RankDataArraySpan[StaticData.JobInMemory(job)].Rank;
 
         public unsafe Dictionary<string, MonsterProgress> GetMemoryProgress(uint job, int rank)
@@ -250,11 +250,11 @@ namespace Hunty
             {
                 var bNpcEnglish = bNpcNamesEnglish.GetRow(currentMonster.RowId)!;
 
-                var correctedName = Helper.ToTitleCaseExtended(currentMonster.Singular, currentMonster.Article);
+                var correctedName = Utils.ToTitleCaseExtended(currentMonster.Singular, currentMonster.Article);
                 if (ClientState.ClientLanguage == ClientLanguage.German)
-                    correctedName = Helper.CorrectGermanNames(correctedName, currentMonster.Pronoun);
+                    correctedName = Utils.CorrectGermanNames(correctedName, currentMonster.Pronoun);
 
-                fill[Helper.ToTitleCaseExtended(bNpcEnglish.Singular, bNpcEnglish.Article)] = correctedName;
+                fill[Utils.ToTitleCaseExtended(bNpcEnglish.Singular, bNpcEnglish.Article)] = correctedName;
             }
 
         }
@@ -335,7 +335,7 @@ namespace Hunty
 
                         var newMonster = new HuntingMonster();
                         var bNpc = target.Value!.BNpcName.Value!;
-                        newMonster.Name = Helper.ToTitleCaseExtended(bNpc.Singular, bNpc.Article);
+                        newMonster.Name = Utils.ToTitleCaseExtended(bNpc.Singular, bNpc.Article);
                         newMonster.Count = count;
                         newMonster.Icon = (uint) target.Value.Icon;
 

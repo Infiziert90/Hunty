@@ -94,7 +94,7 @@ public class XLWindow : Window, IDisposable
             : 0;
 
         ImGui.Combo("##areaSelector", ref selectedArea, areaList, areaList.Length);
-        DrawArrows(ref selectedArea, areaList.Length, 4);
+        Helper.DrawArrows(ref selectedArea, areaList.Length, 4);
         lastArea = areaList[selectedArea];
 
         ImGuiHelpers.ScaledDummy(5);
@@ -125,9 +125,9 @@ public class XLWindow : Window, IDisposable
             if (!area.TryGetValue(areaList[selectedArea], out var monsters))
                 continue;
 
-            ImGui.TextColored(ImGuiColors.DalamudViolet, Helper.ToTitleCaseExtended(ClassJobs.GetRow(job)!.Name));
+            ImGui.TextColored(ImGuiColors.DalamudViolet, Utils.ToTitleCaseExtended(ClassJobs.GetRow(job)!.Name));
             var memoryProgress = Plugin.GetMemoryProgress(job, jobRank);
-            DrawProgressSymbol(monsters.All(x => memoryProgress[x.Name].Done));
+            Helper.DrawProgressSymbol(monsters.All(x => memoryProgress[x.Name].Done));
 
             ImGuiHelpers.ScaledDummy(5);
 
@@ -143,10 +143,10 @@ public class XLWindow : Window, IDisposable
                 foreach (var monster in monsters)
                 {
                     ImGui.TableNextColumn();
-                    DrawIcon(monster.Icon);
+                    Helper.DrawIcon(monster.Icon, size);
 
                     ImGui.TableNextColumn();
-                    ImGui.TextUnformatted(monsterLanguage == null ? Helper.ToTitleCaseExtended(monster.Name) : monsterLanguage[monster.Name]);
+                    ImGui.TextUnformatted(monsterLanguage == null ? Utils.ToTitleCaseExtended(monster.Name) : monsterLanguage[monster.Name]);
 
                     ImGui.TableNextColumn();
                     var monsterProgress = memoryProgress[monster.Name];
@@ -192,42 +192,6 @@ public class XLWindow : Window, IDisposable
             }
             ImGui.EndTable();
         }
-    }
-
-    private static void DrawArrows(ref int selected, int length, int id)
-    {
-        ImGui.SameLine();
-        if (selected == 0) ImGui.BeginDisabled();
-        if (Dalamud.Interface.Components.ImGuiComponents.IconButton(id, FontAwesomeIcon.ArrowLeft)) selected--;
-        if (selected == 0) ImGui.EndDisabled();
-
-        ImGui.SameLine();
-        if (selected + 1 == length) ImGui.BeginDisabled();
-        if (Dalamud.Interface.Components.ImGuiComponents.IconButton(id+1, FontAwesomeIcon.ArrowRight)) selected++;
-        if (selected + 1 == length) ImGui.EndDisabled();
-    }
-
-    private void DrawProgressSymbol(bool done)
-    {
-        ImGui.SameLine();
-        ImGui.PushFont(UiBuilder.IconFont);
-        ImGui.TextUnformatted(done
-            ? FontAwesomeIcon.Check.ToIconString()
-            : FontAwesomeIcon.Times.ToIconString());
-        ImGui.PopFont();
-    }
-
-    private static void DrawIcon(uint iconId)
-    {
-        var iconSize = size * ImGuiHelpers.GlobalScale;
-        var texture = Plugin.Texture.GetIcon(iconId);
-        if (texture == null)
-        {
-            ImGui.Text($"Unknown icon {iconId}");
-            return;
-        }
-
-        ImGui.Image(texture.ImGuiHandle, iconSize);
     }
 
     public void SetJobAndGc(uint job, string name, uint gc, string gcName)

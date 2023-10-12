@@ -52,7 +52,7 @@ public class MainWindow : Window, IDisposable
 
         var classJobs = Plugin.Data.GetExcelSheet<ClassJob>()!;
         for (var i = 0; i < JobArray.Length; i++)
-            jobs[i] = Helper.ToTitleCaseExtended(classJobs.GetRow(JobArray[i])!.Name);
+            jobs[i] = Utils.ToTitleCaseExtended(classJobs.GetRow(JobArray[i])!.Name);
     }
 
     public void Dispose() { }
@@ -71,7 +71,7 @@ public class MainWindow : Window, IDisposable
         else if (!Plugin.HuntingData.JobRanks.TryGetValue(currentJob, out selClass))
         {
             ImGui.Combo("##classSelector", ref selectedClass, jobs, jobs.Length);
-            DrawArrows(ref selectedClass, jobs.Length, 0);
+            Helper.DrawArrows(ref selectedClass, jobs.Length, 0);
 
             selClass = Plugin.HuntingData.JobRanks[JobArray[selectedClass]];
         }
@@ -106,18 +106,18 @@ public class MainWindow : Window, IDisposable
 
         var rankList = selClass!.Select((_, i) => $"{Loc.Localize("Selector: Rank", "Rank")} {i+1}").ToArray();
         ImGui.Combo("##rankSelector", ref selectedRank, rankList, rankList.Length);
-        DrawArrows(ref selectedRank, rankList.Length, 2);
-        DrawProgressSymbol(selectedRank < Plugin.GetRankFromMemory(current));
+        Helper.DrawArrows(ref selectedRank, rankList.Length, 2);
+        Helper.DrawProgressSymbol(selectedRank < Plugin.GetRankFromMemory(current));
 
         FillCurrentAreas(oldRank, oldClass, selClass);
 
         var areaList = currentAreas.Keys.ToArray();
         ImGui.Combo("##areaSelector", ref selectedArea, areaList, areaList.Length);
-        DrawArrows(ref selectedArea, areaList.Length, 4);
+        Helper.DrawArrows(ref selectedArea, areaList.Length, 4);
 
         var monsters = currentAreas[areaList[selectedArea]];
         var memoryProgress = Plugin.GetMemoryProgress(current, selectedRank);
-        DrawProgressSymbol(monsters.All(x => memoryProgress[x.Name].Done));
+        Helper.DrawProgressSymbol(monsters.All(x => memoryProgress[x.Name].Done));
 
         ImGuiHelpers.ScaledDummy(10);
 
@@ -136,10 +136,10 @@ public class MainWindow : Window, IDisposable
             foreach (var monster in monsters)
             {
                 ImGui.TableNextColumn();
-                DrawIcon(monster.Icon);
+                Helper.DrawIcon(monster.Icon, size);
 
                 ImGui.TableNextColumn();
-                ImGui.TextUnformatted(monsterLanguage == null ? Helper.ToTitleCaseExtended(monster.Name) : monsterLanguage[monster.Name]);
+                ImGui.TextUnformatted(monsterLanguage == null ? Utils.ToTitleCaseExtended(monster.Name) : monsterLanguage[monster.Name]);
 
                 ImGui.TableNextColumn();
                 var monsterProgress = memoryProgress[monster.Name];
@@ -186,29 +186,6 @@ public class MainWindow : Window, IDisposable
         ImGui.EndTable();
     }
 
-    private static void DrawArrows(ref int selected, int length, int id)
-    {
-        ImGui.SameLine();
-        if (selected == 0) ImGui.BeginDisabled();
-        if (Dalamud.Interface.Components.ImGuiComponents.IconButton(id, FontAwesomeIcon.ArrowLeft)) selected--;
-        if (selected == 0) ImGui.EndDisabled();
-
-        ImGui.SameLine();
-        if (selected + 1 == length) ImGui.BeginDisabled();
-        if (Dalamud.Interface.Components.ImGuiComponents.IconButton(id+1, FontAwesomeIcon.ArrowRight)) selected++;
-        if (selected + 1 == length) ImGui.EndDisabled();
-    }
-
-    private void DrawProgressSymbol(bool done)
-    {
-        ImGui.SameLine();
-        ImGui.PushFont(UiBuilder.IconFont);
-        ImGui.TextUnformatted(done
-            ? FontAwesomeIcon.Check.ToIconString()
-            : FontAwesomeIcon.Times.ToIconString());
-        ImGui.PopFont();
-    }
-
     private void Defaults()
     {
         selectedClass = 0;
@@ -219,19 +196,6 @@ public class MainWindow : Window, IDisposable
             selectedClass = Array.IndexOf(JobArray, currentJob);
 
         currentAreas.Clear();
-    }
-
-    private static void DrawIcon(uint iconId)
-    {
-        var iconSize = size * ImGuiHelpers.GlobalScale;
-        var texture = Plugin.Texture.GetIcon(iconId);
-        if (texture == null)
-        {
-            ImGui.Text($"Unknown icon {iconId}");
-            return;
-        }
-
-        ImGui.Image(texture.ImGuiHandle, iconSize);
     }
 
     public void SetJobAndGc(uint job, string name, uint gc, string gcName)
