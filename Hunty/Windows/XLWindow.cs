@@ -28,7 +28,6 @@ public class XLWindow : Window, IDisposable
     private static Vector2 size = new(40, 40);
     private static readonly uint[] JobArray = { 1, 2, 3, 4, 5, 6, 7, 26, 29 };
 
-    private static Dictionary<string, string> monsterLanguage;
     private static ExcelSheet<ClassJob> ClassJobs = null!;
 
     public XLWindow(Plugin plugin) : base("Hunty XL")
@@ -41,11 +40,6 @@ public class XLWindow : Window, IDisposable
 
         Plugin = plugin;
         ClassJobs = Plugin.Data.GetExcelSheet<ClassJob>()!;
-    }
-
-    public void Initialize()
-    {
-        monsterLanguage = StaticData.MonsterNames[Plugin.ClientState.ClientLanguage];
     }
 
     public void Dispose() { }
@@ -146,7 +140,7 @@ public class XLWindow : Window, IDisposable
                     Helper.DrawIcon(monster.Icon, size);
 
                     ImGui.TableNextColumn();
-                    ImGui.TextUnformatted(monsterLanguage == null ? Utils.ToTitleCaseExtended(monster.Name) : monsterLanguage[monster.Name]);
+                    ImGui.TextUnformatted(Plugin.GetMonsterNameLoc(monster.Id));
 
                     ImGui.TableNextColumn();
                     var monsterProgress = memoryProgress[monster.Name];

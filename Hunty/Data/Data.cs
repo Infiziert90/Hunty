@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Dalamud;
 
 namespace Hunty.Data;
 
@@ -24,15 +23,6 @@ public static class StaticData
             _ => 0
         };
     }
-    
-    // English -> Other Language
-    public static Dictionary<ClientLanguage, Dictionary<string, string>> MonsterNames = new()
-    {
-        { ClientLanguage.English, null },
-        { ClientLanguage.German, new Dictionary<string, string>() },
-        { ClientLanguage.French, new Dictionary<string, string>() },
-        { ClientLanguage.Japanese, new Dictionary<string, string>() },
-    };
 
     public static readonly List<string> GermanPronouns = new()
     {

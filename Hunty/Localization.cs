@@ -3,7 +3,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using CheapLoc;
-using Dalamud.Logging;
 
 namespace Hunty;
 
@@ -45,8 +44,6 @@ public class Localization
 
     private string ReadLocData(string langCode)
     {
-
-
         return File.ReadAllText(Path.Combine(Plugin.PluginInterface.AssemblyLocation.DirectoryName!, locResourceDirectory, $"{langCode}.json"));
     }
 }

@@ -3,10 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using CheapLoc;
-using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
-using Hunty.Data;
 using ImGuiNET;
 using Lumina.Excel;
 using Lumina.Excel.GeneratedSheets;
@@ -41,7 +39,6 @@ public class CompanionWindow : Window, IDisposable
         { 10003, 60569 }, /* Immortal Flames */
     };
 
-    private static Dictionary<string, string> monsterLanguage;
     private static ExcelSheet<ClassJob> ClassJobs = null!;
 
     public CompanionWindow(Plugin plugin) : base("Hunty Companion")
@@ -54,11 +51,6 @@ public class CompanionWindow : Window, IDisposable
 
         Plugin = plugin;
         ClassJobs = Plugin.Data.GetExcelSheet<ClassJob>()!;
-    }
-
-    public void Initialize()
-    {
-        monsterLanguage = StaticData.MonsterNames[Plugin.ClientState.ClientLanguage];
     }
 
     public void Dispose() { }
@@ -140,7 +132,7 @@ public class CompanionWindow : Window, IDisposable
                 Helper.DrawIcon(monster.Icon, size);
 
                 ImGui.TableNextColumn();
-                ImGui.TextUnformatted(monsterLanguage == null ? Utils.ToTitleCaseExtended(monster.Name) : monsterLanguage[monster.Name]);
+                ImGui.TextUnformatted(Plugin.GetMonsterNameLoc(monster.Id));
 
                 ImGui.TableNextColumn();
                 Helper.DrawIcon(RequirementIcons[job], size, 0.75f);

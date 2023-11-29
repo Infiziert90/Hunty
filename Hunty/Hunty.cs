@@ -55,6 +55,8 @@ namespace Hunty
 
         public static TeleportConsumer TeleportConsumer = null!;
 
+        private static ExcelSheet<BNpcName> BNpcName = null!;
+
         private static ExcelSheet<Map> MapSheet = null!;
         private static ExcelSheet<MapMarker> MapMarkerSheet = null!;
         private static ExcelSheet<Aetheryte> AetheryteSheet = null!;
@@ -65,6 +67,7 @@ namespace Hunty
             Configuration.Initialize(PluginInterface);
             Localization.SetupWithLangCode(PluginInterface.UiLanguage);
 
+            BNpcName = Data.GetExcelSheet<BNpcName>()!;
             MapSheet = Data.GetExcelSheet<Map>()!;
             MapMarkerSheet = Data.GetExcelSheet<MapMarker>()!;
             AetheryteSheet = Data.GetExcelSheet<Aetheryte>()!;
@@ -81,8 +84,6 @@ namespace Hunty
             PluginInterface.UiBuilder.Draw += DrawUI;
             PluginInterface.UiBuilder.OpenConfigUi += OpenConfigWindow;
             PluginInterface.LanguageChanged += Localization.SetupWithLangCode;
-
-            GetLocMonsterNames();
 
             CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
             {
@@ -114,8 +115,7 @@ namespace Hunty
             }
 
             MainWindow.Initialize();
-            XLWindow.Initialize();
-            CompanionWindow.Initialize();
+
             Framework.Update += CheckJobChange;
             ClientState.Login += OnLogin;
             ClientState.TerritoryChanged += OnTerritoryChange;
@@ -233,32 +233,6 @@ namespace Hunty
             return currentProgress;
         }
 
-        private void GetLocMonsterNames()
-        {
-            var currentLanguage = ClientState.ClientLanguage;
-            if (currentLanguage == ClientLanguage.English) return;
-
-            var monsterNotes = Data.GetExcelSheet<MonsterNote>()!;
-            var bNpcNamesEnglish = Data.GetExcelSheet<BNpcName>(ClientLanguage.English)!;
-
-            var fill = StaticData.MonsterNames[currentLanguage];
-            foreach (var currentMonster in monsterNotes
-                         .Where(monsterNote => monsterNote.RowId != 0)
-                         .SelectMany(monsterNote => monsterNote.MonsterNoteTarget
-                             .Where(monster => monster.Row != 0)
-                             .Select(monster => monster.Value!.BNpcName.Value!)))
-            {
-                var bNpcEnglish = bNpcNamesEnglish.GetRow(currentMonster.RowId)!;
-
-                var correctedName = Utils.ToTitleCaseExtended(currentMonster.Singular, currentMonster.Article);
-                if (ClientState.ClientLanguage == ClientLanguage.German)
-                    correctedName = Utils.CorrectGermanNames(correctedName, currentMonster.Pronoun);
-
-                fill[Utils.ToTitleCaseExtended(bNpcEnglish.Singular, bNpcEnglish.Article)] = correctedName;
-            }
-
-        }
-
         // From: https://github.com/SheepGoMeh/HuntBuddy/blob/5a92e0e104839c30eaf398790dee32b793c3c53e/HuntBuddy/Location.cs#L520
         public static void TeleportToNearestAetheryte(HuntingMonsterLocation location)
         {
@@ -297,6 +271,16 @@ namespace Hunty
             var num1 = scale / 100f;
             var num2 = (float)(pos * (double)num1 / 1000.0f);
             return (40.96f / num1 * ((num2 + 1024.0f) / 2048.0f)) + 1.0f;
+        }
+
+        public static string GetMonsterNameLoc(uint id)
+        {
+            var npc = BNpcName.GetRow(id)!;
+            var correctedName = Utils.ToTitleCaseExtended(npc.Singular, npc.Article);
+            if (ClientState.ClientLanguage == ClientLanguage.German)
+                correctedName = Utils.CorrectGermanNames(correctedName, npc.Pronoun);
+
+            return correctedName;
         }
 
         // If square ever decides to change the Hunting Log~

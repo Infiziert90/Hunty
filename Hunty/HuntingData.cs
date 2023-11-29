@@ -5,6 +5,7 @@ using System.Numerics;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Lumina.Excel.GeneratedSheets;
 using Newtonsoft.Json;
+
 using static Hunty.Utils;
 
 namespace Hunty;
@@ -30,15 +31,16 @@ public class HuntingTask
 [Serializable]
 public class HuntingMonster
 {
+    public uint Id { get; set; }
     public string Name { get; set; }
     public byte Count { get; set; }
     public uint Icon { get; set; }
 
     public List<HuntingMonsterLocation> Locations { get; set; } = new();
 
-    public HuntingMonsterLocation GetLocation => Locations[0]; // game gives up to 3 locations
-    public string GetCoordinates => Locations[0].MapLink.CoordinateString;
-    public bool IsOpenWorld => !Locations[0].IsDuty;
+    [JsonIgnore] public HuntingMonsterLocation GetLocation => Locations[0]; // game gives up to 3 locations
+    [JsonIgnore] public string GetCoordinates => Locations[0].MapLink.CoordinateString;
+    [JsonIgnore] public bool IsOpenWorld => !Locations[0].IsDuty;
 }
 
 [Serializable]

@@ -6,7 +6,6 @@ using CheapLoc;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
-using Hunty.Data;
 using ImGuiNET;
 using Lumina.Excel.GeneratedSheets;
 
@@ -33,8 +32,6 @@ public class MainWindow : Window, IDisposable
     private static string[] jobs = new string[9];
     private static readonly uint[] JobArray = { 1, 2, 3, 4, 5, 6, 7, 26, 29 };
 
-    private static Dictionary<string, string> monsterLanguage;
-
     public MainWindow(Plugin plugin) : base("Hunty")
     {
         SizeConstraints = new WindowSizeConstraints
@@ -48,8 +45,6 @@ public class MainWindow : Window, IDisposable
 
     public void Initialize()
     {
-        monsterLanguage = StaticData.MonsterNames[Plugin.ClientState.ClientLanguage];
-
         var classJobs = Plugin.Data.GetExcelSheet<ClassJob>()!;
         for (var i = 0; i < JobArray.Length; i++)
             jobs[i] = Utils.ToTitleCaseExtended(classJobs.GetRow(JobArray[i])!.Name);
@@ -139,7 +134,7 @@ public class MainWindow : Window, IDisposable
                 Helper.DrawIcon(monster.Icon, size);
 
                 ImGui.TableNextColumn();
-                ImGui.TextUnformatted(monsterLanguage == null ? Utils.ToTitleCaseExtended(monster.Name) : monsterLanguage[monster.Name]);
+                ImGui.TextUnformatted(Plugin.GetMonsterNameLoc(monster.Id));
 
                 ImGui.TableNextColumn();
                 var monsterProgress = memoryProgress[monster.Name];
