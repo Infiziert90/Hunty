@@ -136,6 +136,8 @@ public class XLWindow : Window, IDisposable
 
                 foreach (var monster in monsters)
                 {
+                    var monsterProgress = memoryProgress[monster.Name];
+                    if (monsterProgress.Done) continue;
                     ImGui.TableNextColumn();
                     Helper.DrawIcon(monster.Icon, size);
 
@@ -143,7 +145,6 @@ public class XLWindow : Window, IDisposable
                     ImGui.TextUnformatted(Plugin.GetMonsterNameLoc(monster.Id));
 
                     ImGui.TableNextColumn();
-                    var monsterProgress = memoryProgress[monster.Name];
                     if (monsterProgress.Done)
                     {
                         ImGui.PushFont(UiBuilder.IconFont);
