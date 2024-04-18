@@ -7,7 +7,6 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
-using Hunty.Data;
 using ImGuiNET;
 using Lumina.Excel;
 using Lumina.Excel.GeneratedSheets;
@@ -47,6 +46,14 @@ public class XLWindow : Window, IDisposable
     public override void Draw()
     {
         ImGui.TextUnformatted(currentGcName);
+
+        var skipText = Loc.Localize("Option: Skip Done", "Hide finished entries");
+        var textLength = ImGui.GetTextLineHeight() + ImGui.CalcTextSize(skipText).X + ImGui.GetStyle().ItemInnerSpacing.X + ImGui.GetStyle().FramePadding.X;
+        ImGui.SameLine(ImGui.GetContentRegionMax().X - textLength);
+
+        if (ImGui.Checkbox(skipText, ref Plugin.Configuration.SkipDone))
+            Plugin.Configuration.Save();
+
         ImGui.TextUnformatted(currentJobName);
 
         Plugin.HuntingData.JobRanks.TryGetValue(currentGc, out var gc);
@@ -137,7 +144,9 @@ public class XLWindow : Window, IDisposable
                 foreach (var monster in monsters)
                 {
                     var monsterProgress = memoryProgress[monster.Name];
-                    if (monsterProgress.Done) continue;
+                    if (Plugin.Configuration.SkipDone &&  monsterProgress.Done)
+                        continue;
+
                     ImGui.TableNextColumn();
                     Helper.DrawIcon(monster.Icon, size);
 

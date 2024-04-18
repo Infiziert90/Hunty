@@ -9,6 +9,8 @@ namespace Hunty
     {
         public int Version { get; set; } = 0;
 
+        public bool SkipDone = true;
+
         // the below exist just to make saving less cumbersome
         [NonSerialized]
         private DalamudPluginInterface? pluginInterface;

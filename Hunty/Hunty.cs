@@ -42,8 +42,9 @@ namespace Hunty
         private const string CommandXL = "/huntyxl";
         private const string CommandCompanion = "/huntycompanion";
 
+        public Configuration Configuration { get; init; }
+
         private Localization Localization = new();
-        private Configuration Configuration { get; init; }
         private WindowSystem WindowSystem = new("Hunty");
         private MainWindow MainWindow;
         private XLWindow XLWindow;

@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net7.0-windows</TargetFramework>
+		<TargetFramework>net8.0-windows</TargetFramework>
 		<LangVersion>latest</LangVersion>
 		<PackageId>Hunty</PackageId>
 		<Authors>Infi</Authors>
-		<Version>1.3.0.1</Version>
+		<Version>1.3.0.2</Version>
 	</PropertyGroup>
 
 	<PropertyGroup>
