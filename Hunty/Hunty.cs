@@ -6,7 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using CheapLoc;
-using Dalamud;
+using Dalamud.Game;
 using Hunty.Windows;
 using Dalamud.Game.Command;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
@@ -28,7 +28,7 @@ namespace Hunty
 {
     public sealed class Plugin : IDalamudPlugin
     {
-        [PluginService] public static DalamudPluginInterface PluginInterface { get; set; } = null!;
+        [PluginService] public static IDalamudPluginInterface PluginInterface { get; set; } = null!;
         [PluginService] public static IDataManager Data { get; set; } = null!;
         [PluginService] public static IChatGui ChatGui { get; set; } = null!;
         [PluginService] public static IClientState ClientState { get; set; } = null!;
@@ -196,7 +196,7 @@ namespace Hunty
         public unsafe void OpenDutyFinder(uint key) => AgentContentsFinder.Instance()->OpenRegularDuty(key);
         public unsafe uint GetGrandCompany() => UIState.Instance()->PlayerState.GrandCompany + (uint) 10000;
         public string GetCurrentGcName() => Utils.ToTitleCaseExtended(Data.GetExcelSheet<GrandCompany>()!.GetRow(GetGrandCompany() - 10000)!.Name);
-        public unsafe int GetRankFromMemory(uint job) => MonsterNoteManager.Instance()->RankDataArraySpan[StaticData.JobInMemory(job)].Rank;
+        public unsafe int GetRankFromMemory(uint job) => MonsterNoteManager.Instance()->RankData[StaticData.JobInMemory(job)].Rank;
 
         public unsafe Dictionary<string, MonsterProgress> GetMemoryProgress(uint job, int rank)
         {
@@ -204,7 +204,7 @@ namespace Hunty
 
             var huntingRank = HuntingData.JobRanks[job][rank];
             var monsterNoteManager = MonsterNoteManager.Instance();
-            var jobMemory = monsterNoteManager->RankDataArraySpan[StaticData.JobInMemory(job)];
+            var jobMemory = monsterNoteManager->RankData[StaticData.JobInMemory(job)];
             var progressRank = jobMemory.Rank;
 
             if (progressRank > rank) // Rank is already finished, all monsters are done
@@ -220,7 +220,7 @@ namespace Hunty
             }
             else
             {
-                foreach (var (task, progress) in huntingRank.Tasks.Zip(jobMemory.RankDataArraySpan.ToArray()))
+                foreach (var (task, progress) in huntingRank.Tasks.Zip(jobMemory.RankData.ToArray()))
                 {
                     foreach (var (monster, idx) in task.Monsters.Select((monster, i) => ( monster, i )))
                     {

@@ -23,13 +23,7 @@ public static class Helper
     public static void DrawIcon(uint iconId, Vector2 size, float scale = 1)
     {
         var iconSize = size * ImGuiHelpers.GlobalScale * scale;
-        var texture = Plugin.Texture.GetIcon(iconId);
-        if (texture == null)
-        {
-            ImGui.Text($"Unknown icon {iconId}");
-            return;
-        }
-
+        var texture = Plugin.Texture.GetFromGameIcon(iconId).GetWrapOrEmpty();
         ImGui.Image(texture.ImGuiHandle, iconSize);
     }
 
