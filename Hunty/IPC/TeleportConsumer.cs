@@ -1,9 +1,5 @@
 using System;
-using System.Linq;
-using System.Numerics;
-using Dalamud.Logging;
 using Dalamud.Plugin.Ipc;
-using Lumina.Excel.GeneratedSheets;
 
 namespace Hunty.IPC;
 

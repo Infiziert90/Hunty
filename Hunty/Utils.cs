@@ -1,16 +1,19 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Dalamud.Utility;
 using Hunty.Data;
 using Lumina.Text;
+using Lumina.Text.ReadOnly;
 
 namespace Hunty;
 
 public static class Utils
 {
     // From Ottermandias
-    public static string ToTitleCaseExtended(SeString s, sbyte article = 0)
+    public static string ToTitleCaseExtended(ReadOnlySeString s, sbyte article = 0)
     {
         if (article == 1)
             return s.ToDalamudString().ToString();
@@ -77,5 +80,19 @@ public static class Utils
         }
 
         return val;
+    }
+
+    /// <summary> Return the first object fulfilling the predicate or null for structs. </summary>
+    /// <param name="values"> The enumerable. </param>
+    /// <param name="predicate"> The predicate. </param>
+    /// <returns> The first object fulfilling the predicate, or a null-optional. </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public static T? FirstOrNull<T>(this IEnumerable<T> values, Func<T, bool> predicate) where T : struct
+    {
+        foreach(var val in values)
+            if (predicate(val))
+                return val;
+
+        return null;
     }
 }

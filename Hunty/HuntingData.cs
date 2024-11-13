@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
-using Lumina.Excel.GeneratedSheets;
+using Lumina.Excel.Sheets;
 using Newtonsoft.Json;
 
 using static Hunty.Utils;
@@ -85,14 +84,14 @@ public class HuntingMonsterLocation
         if (Zone == 0) return;
 
         var zoneSheet = Plugin.Data.GetExcelSheet<TerritoryType>()!.GetRow(Zone)!;
-        var content = contentSheet.FirstOrDefault(x => x.TerritoryType.Row == zoneSheet.RowId);
+        var content = contentSheet.FirstOrNull(x => x.TerritoryType.RowId == zoneSheet.RowId);
         if (content == null) return;
 
-        if (ToTitleCaseExtended(content.Name, 0) == "") return;
+        if (ToTitleCaseExtended(content.Value.Name, 0) == "") return;
 
         IsDuty = true;
-        DutyName = ToTitleCaseExtended(content.Name, 0);
-        DutyKey = content.RowId;
+        DutyName = ToTitleCaseExtended(content.Value.Name, 0);
+        DutyKey = content.Value.RowId;
     }
 }
 
