@@ -13,12 +13,13 @@ namespace Hunty.Windows;
 
 public class MainWindow : Window, IDisposable
 {
-    private Plugin Plugin;
-    private int selectedClass = 0;
-    private int selectedRank = 0;
-    private int selectedArea = 0;
+    private readonly Plugin Plugin;
 
-    private bool openGrandCompany = false;
+    private int selectedClass;
+    private int selectedRank;
+    private int selectedArea;
+
+    private bool openGrandCompany;
 
     private uint currentJob = 1;
     private string currentJobName = "";
@@ -30,7 +31,7 @@ public class MainWindow : Window, IDisposable
     private readonly Vector4 redColor = new(0.980f, 0.245f, 0.245f, 1.0f);
     private static Vector2 size = new(40, 40);
     private static string[] jobs = new string[9];
-    private static readonly uint[] JobArray = { 1, 2, 3, 4, 5, 6, 7, 26, 29 };
+    private static readonly uint[] JobArray = [1, 2, 3, 4, 5, 6, 7, 26, 29];
 
     public MainWindow(Plugin plugin) : base("Hunty")
     {
@@ -47,7 +48,7 @@ public class MainWindow : Window, IDisposable
     {
         var classJobs = Plugin.Data.GetExcelSheet<ClassJob>()!;
         for (var i = 0; i < JobArray.Length; i++)
-            jobs[i] = Utils.ToTitleCaseExtended(classJobs.GetRow(JobArray[i])!.Name);
+            jobs[i] = Utils.ToTitleCaseExtended(classJobs.GetRow(JobArray[i]).Name);
     }
 
     public void Dispose() { }

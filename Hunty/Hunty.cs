@@ -52,7 +52,7 @@ namespace Hunty
 
         public readonly HuntingData HuntingData = null!;
         private uint CurrentJobId;
-        private ClassJob CurrentJobParent = new();
+        private ClassJob CurrentJobParent;
 
         public static TeleportConsumer TeleportConsumer = null!;
 
