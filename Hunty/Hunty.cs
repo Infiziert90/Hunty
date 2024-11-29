@@ -284,5 +284,75 @@ namespace Hunty
 
             return correctedName;
         }
+
+        // Square decided to change duty arounds, so keep it
+        #region internal
+        private void WriteMonsterNote()
+        {
+            var hunt = new HuntingData();
+            var monsterNotes = Data.GetExcelSheet<MonsterNote>()!;
+            var mapSheet = Data.GetExcelSheet<Map>();
+            var tencounter = 0;
+            var index = 0;
+            foreach (var task in monsterNotes)
+            {
+                if (task.RowId == 0)
+                    continue;
+
+                try
+                {
+                    var newTask = new HuntingTask { Name = task.Name.ToString() };
+
+                    foreach (var (target, count) in task.MonsterNoteTarget.Zip(task.Count))
+                    {
+                        if (target.RowId == 0)
+                            continue;
+
+                        var newMonster = new HuntingMonster();
+                        var bNpc = target.Value!.BNpcName.Value!;
+                        newMonster.Name = Utils.ToTitleCaseExtended(bNpc.Singular, bNpc.Article);
+                        newMonster.Count = count;
+                        newMonster.Icon = (uint) target.Value.Icon;
+
+                        var map = mapSheet.FirstOrNull(row => target.Value.PlaceNameZone.Where(z => z.RowId != 0).Any(z => z.Value.RowId == row.PlaceName.RowId));
+                        if (map != null && map.Value.TerritoryType.RowId != 0)
+                        {
+                            var zone = mapSheet.FirstOrNull(row => target.Value.PlaceNameLocation.Where(z => z.RowId != 0).Any(l => l.RowId == row.PlaceName.RowId));
+                            if (zone != null && zone.Value.TerritoryType.RowId != 0)
+                            {
+                                newMonster.Locations.Add(new HuntingMonsterLocation(map.Value.TerritoryType.RowId, map.Value.RowId, zone.Value.TerritoryType.RowId));
+                            }
+                            else
+                            {
+                                newMonster.Locations.Add(new HuntingMonsterLocation(map.Value.TerritoryType.RowId, map.Value.RowId));
+                            }
+                        }
+                        Log.Information($"Note: {newTask.Name} - {newMonster.Locations.First().Name} Terri: {newMonster.Locations.First().Terri} Map: {newMonster.Locations.First().Map} Zone: {newMonster.Locations.First().Zone}");
+                        newTask.Monsters.Add(newMonster);
+                    }
+                    // if (newTask.Monsters.Any()) hunt.JobRanks[name][index].Tasks.Add(newTask);
+                    tencounter++;
+                    if (tencounter % 50 == 0)
+                    {
+                        index = 0;
+                    }
+                    else if (tencounter % 10 == 0)
+                    {
+                        index++;
+                        // hunt.JobRanks[name].Add(new HuntingRank());
+                    }
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e.Message);
+                }
+            }
+            var l = JsonConvert.SerializeObject(hunt, new JsonSerializerSettings { Formatting = Formatting.Indented,});
+            var path = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "monstersTest.json");
+            Log.Information($"Writing monster json");
+            Log.Information(path);
+            File.WriteAllText(path, l);
+        }
+        #endregion
     }
 }
