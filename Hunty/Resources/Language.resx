@@ -60,4 +60,25 @@
     <data name="ErrorLogDone" xml:space="preserve">
         <value>This job is done with the hunting log.</value>
     </data>
+    <data name="About" xml:space="preserve">
+        <value>About</value>
+    </data>
+    <data name="DiscordThread" xml:space="preserve">
+        <value>Discord Thread</value>
+    </data>
+    <data name="GithubIssues" xml:space="preserve">
+        <value>Issues</value>
+    </data>
+    <data name="KoFiTip" xml:space="preserve">
+        <value>Ko-Fi Tip</value>
+    </data>
+    <data name="Version" xml:space="preserve">
+        <value>Version:</value>
+    </data>
+    <data name="Discord" xml:space="preserve">
+        <value>Discord:</value>
+    </data>
+    <data name="Author" xml:space="preserve">
+        <value>Author:</value>
+    </data>
 </root>

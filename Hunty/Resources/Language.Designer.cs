@@ -60,6 +60,24 @@ namespace Hunty.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to About.
+        /// </summary>
+        internal static string About {
+            get {
+                return ResourceManager.GetString("About", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Author:.
+        /// </summary>
+        internal static string Author {
+            get {
+                return ResourceManager.GetString("Author", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Grand Company.
         /// </summary>
         internal static string ButtonGrandCompany {
@@ -74,6 +92,24 @@ namespace Hunty.Resources {
         internal static string ButtonJobs {
             get {
                 return ResourceManager.GetString("ButtonJobs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Discord:.
+        /// </summary>
+        internal static string Discord {
+            get {
+                return ResourceManager.GetString("Discord", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Discord Thread.
+        /// </summary>
+        internal static string DiscordThread {
+            get {
+                return ResourceManager.GetString("DiscordThread", resourceCulture);
             }
         }
         
@@ -105,6 +141,15 @@ namespace Hunty.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Issues.
+        /// </summary>
+        internal static string GithubIssues {
+            get {
+                return ResourceManager.GetString("GithubIssues", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Opens a small guide book..
         /// </summary>
         internal static string HelpMessage {
@@ -128,6 +173,15 @@ namespace Hunty.Resources {
         internal static string HelpMessageXL {
             get {
                 return ResourceManager.GetString("HelpMessageXL", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Ko-Fi Tip.
+        /// </summary>
+        internal static string KoFiTip {
+            get {
+                return ResourceManager.GetString("KoFiTip", resourceCulture);
             }
         }
         
@@ -182,6 +236,15 @@ namespace Hunty.Resources {
         internal static string TableLabelMonster {
             get {
                 return ResourceManager.GetString("TableLabelMonster", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Version:.
+        /// </summary>
+        internal static string Version {
+            get {
+                return ResourceManager.GetString("Version", resourceCulture);
             }
         }
     }

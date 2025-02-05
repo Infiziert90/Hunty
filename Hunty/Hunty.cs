@@ -18,6 +18,7 @@ using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Hunty.Data;
 using Hunty.IPC;
 using Hunty.Resources;
+using Hunty.Windows.Config;
 using Lumina.Excel.Sheets;
 using Newtonsoft.Json;
 
@@ -42,6 +43,7 @@ public sealed class Plugin : IDalamudPlugin
     public Configuration Configuration { get; init; }
 
     private WindowSystem WindowSystem = new("Hunty");
+    private ConfigWindow ConfigWindow;
     private MainWindow MainWindow;
     private XLWindow XLWindow;
     private CompanionWindow CompanionWindow;
@@ -67,14 +69,17 @@ public sealed class Plugin : IDalamudPlugin
 
         TeleportConsumer = new TeleportConsumer();
 
+        ConfigWindow = new ConfigWindow(this);
         MainWindow = new MainWindow(this);
         XLWindow = new XLWindow(this);
         CompanionWindow = new CompanionWindow(this);
+        WindowSystem.AddWindow(ConfigWindow);
         WindowSystem.AddWindow(MainWindow);
         WindowSystem.AddWindow(XLWindow);
         WindowSystem.AddWindow(CompanionWindow);
 
         PluginInterface.UiBuilder.Draw += DrawUi;
+        PluginInterface.UiBuilder.OpenMainUi += OpenMainWindow;
         PluginInterface.UiBuilder.OpenConfigUi += OpenConfigWindow;
         PluginInterface.LanguageChanged += LanguageChanged;
 
@@ -114,15 +119,16 @@ public sealed class Plugin : IDalamudPlugin
     {
         Framework.Update -= CheckJobChange;
         PluginInterface.UiBuilder.Draw -= DrawUi;
+        PluginInterface.UiBuilder.OpenMainUi -= OpenMainWindow;
         PluginInterface.UiBuilder.OpenConfigUi -= OpenConfigWindow;
         PluginInterface.LanguageChanged -= LanguageChanged;
 
+        WindowSystem.RemoveAllWindows();
+        ConfigWindow.Dispose();
         MainWindow.Dispose();
         XLWindow.Dispose();
         CompanionWindow.Dispose();
-        WindowSystem.RemoveWindow(MainWindow);
-        WindowSystem.RemoveWindow(XLWindow);
-        WindowSystem.RemoveWindow(CompanionWindow);
+
         CommandManager.RemoveHandler(CommandName);
         CommandManager.RemoveHandler(CommandXL);
         CommandManager.RemoveHandler(CommandCompanion);
@@ -182,7 +188,8 @@ public sealed class Plugin : IDalamudPlugin
     private void OnXLCommand(string command, string args) => XLWindow.IsOpen = true;
     private void OnCompanionCommand(string command, string args) => CompanionWindow.IsOpen = true;
     private void DrawUi() => WindowSystem.Draw();
-    private void OpenConfigWindow() => MainWindow.Toggle();
+    private void OpenMainWindow() => MainWindow.Toggle();
+    private void OpenConfigWindow() => ConfigWindow.Toggle();
 
     public void SetMapMarker(MapLinkPayload map) => GameGui.OpenMapWithMapLink(map);
     public unsafe void OpenDutyFinder(uint key) => AgentContentsFinder.Instance()->OpenRegularDuty(key);
