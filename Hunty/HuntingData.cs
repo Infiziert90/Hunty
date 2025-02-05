@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
-using Lumina.Excel.Sheets;
 using Newtonsoft.Json;
 
 using static Hunty.Utils;
@@ -17,14 +16,14 @@ public class HuntingData
 [Serializable]
 public class HuntingRank
 {
-    public List<HuntingTask> Tasks { get; set; } = new();
+    public List<HuntingTask> Tasks { get; set; } = [];
 }
 
 [Serializable]
 public class HuntingTask
 {
     public string Name;
-    public List<HuntingMonster> Monsters { get; set; } = new();
+    public List<HuntingMonster> Monsters { get; set; } = [];
 }
 
 [Serializable]
@@ -35,7 +34,7 @@ public class HuntingMonster
     public byte Count { get; set; }
     public uint Icon { get; set; }
 
-    public List<HuntingMonsterLocation> Locations { get; set; } = new();
+    public List<HuntingMonsterLocation> Locations { get; set; } = [];
 
     [JsonIgnore] public HuntingMonsterLocation GetLocation => Locations[0]; // game gives up to 3 locations
     [JsonIgnore] public string GetCoordinates => Locations[0].MapLink.CoordinateString;
@@ -47,15 +46,15 @@ public class HuntingMonsterLocation
 {
     public uint Terri { get; set; }
     public uint Map { get; set; }
-    public uint Zone { get; set; } = 0;
+    public uint Zone { get; set; }
 
     public float xCoord { get; set; } = 0;
     public float yCoord { get; set; } = 0;
 
     [JsonIgnore] public string Name = string.Empty;
-    [JsonIgnore] public bool IsDuty = false;
+    [JsonIgnore] public bool IsDuty;
+    [JsonIgnore] public uint DutyKey;
     [JsonIgnore] public string DutyName = string.Empty;
-    [JsonIgnore] public uint DutyKey = 0;
     [JsonIgnore] public MapLinkPayload MapLink = null!;
     [JsonIgnore] public Vector2 Coords => new(xCoord, yCoord);
 
@@ -75,22 +74,23 @@ public class HuntingMonsterLocation
 
     public void InitLocation()
     {
-        var mapSheet = Plugin.Data.GetExcelSheet<TerritoryType>()!.GetRow(Terri)!;
-        var contentSheet = Plugin.Data.GetExcelSheet<ContentFinderCondition>()!;
+        var mapSheet = Sheets.TerritoryTypeSheet.GetRow(Terri);
 
-        Name = ToTitleCaseExtended(mapSheet.Map.Value!.PlaceName.Value!.Name, 0);
+        Name = ToTitleCaseExtended(mapSheet.Map.Value.PlaceName.Value.Name);
         MapLink = new MapLinkPayload(Terri, Map, xCoord, yCoord);
+        if (Zone == 0)
+            return;
 
-        if (Zone == 0) return;
+        var zoneSheet = Sheets.TerritoryTypeSheet.GetRow(Zone)!;
+        var content = Sheets.ContentFinderConditionSheet.FirstOrNull(x => x.TerritoryType.RowId == zoneSheet.RowId);
+        if (content == null)
+            return;
 
-        var zoneSheet = Plugin.Data.GetExcelSheet<TerritoryType>()!.GetRow(Zone)!;
-        var content = contentSheet.FirstOrNull(x => x.TerritoryType.RowId == zoneSheet.RowId);
-        if (content == null) return;
-
-        if (ToTitleCaseExtended(content.Value.Name, 0) == "") return;
+        if (ToTitleCaseExtended(content.Value.Name) == "")
+            return;
 
         IsDuty = true;
-        DutyName = ToTitleCaseExtended(content.Value.Name, 0);
+        DutyName = ToTitleCaseExtended(content.Value.Name);
         DutyKey = content.Value.RowId;
     }
 }

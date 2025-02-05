@@ -1,28 +1,73 @@
 using System.Numerics;
 using Dalamud.Interface;
+using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using ImGuiNET;
 
 namespace Hunty.Windows;
 
 public static class Helper
 {
-    public static void DrawArrows(ref int selected, int length, int id)
-    {
-        ImGui.SameLine();
-        if (selected == 0) ImGui.BeginDisabled();
-        if (Dalamud.Interface.Components.ImGuiComponents.IconButton(id, FontAwesomeIcon.ArrowLeft)) selected--;
-        if (selected == 0) ImGui.EndDisabled();
+    public static readonly Vector2 IconSize = new(40, 40);
+    public static readonly Vector4 RedColor = new(0.980f, 0.245f, 0.245f, 1.0f);
 
-        ImGui.SameLine();
-        if (selected + 1 == length) ImGui.BeginDisabled();
-        if (Dalamud.Interface.Components.ImGuiComponents.IconButton(id+1, FontAwesomeIcon.ArrowRight)) selected++;
-        if (selected + 1 == length) ImGui.EndDisabled();
+    /// <summary>
+    /// An unformatted version for ImGui.TextColored
+    /// </summary>
+    /// <param name="color">color to be used</param>
+    /// <param name="text">text to display</param>
+    public static void TextColored(Vector4 color, string text)
+    {
+        using (ImRaii.PushColor(ImGuiCol.Text, color))
+            ImGui.TextUnformatted(text);
     }
 
-    public static void DrawIcon(uint iconId, Vector2 size, float scale = 1)
+    /// <summary>
+    /// An unformatted version for ImGui.SetTooltip
+    /// </summary>
+    /// <param name="tooltip">tooltip to display</param>
+    public static void Tooltip(string tooltip)
     {
-        var iconSize = size * ImGuiHelpers.GlobalScale * scale;
+        using (ImRaii.Tooltip())
+        using (ImRaii.TextWrapPos(ImGui.GetFontSize() * 35.0f))
+            ImGui.TextUnformatted(tooltip);
+    }
+
+    public static bool DrawArrows(ref int selected, int length, int id = 0)
+    {
+        var changed = false;
+
+        // Prevents changing values from triggering EndDisable
+        var isMin = selected == 0;
+        var isMax = selected + 1 == length;
+
+        ImGui.SameLine();
+        using (ImRaii.Disabled(isMin))
+        {
+            if (ImGuiComponents.IconButton(id, FontAwesomeIcon.ArrowLeft))
+            {
+                selected--;
+                changed = true;
+            }
+        }
+
+        ImGui.SameLine();
+        using (ImRaii.Disabled(isMax))
+        {
+            if (ImGuiComponents.IconButton(id + 1, FontAwesomeIcon.ArrowRight))
+            {
+                selected++;
+                changed = true;
+            }
+        }
+
+        return changed;
+    }
+
+    public static void DrawIcon(uint iconId, float scale = 1)
+    {
+        var iconSize = IconSize * ImGuiHelpers.GlobalScale * scale;
         var texture = Plugin.Texture.GetFromGameIcon(iconId).GetWrapOrEmpty();
         ImGui.Image(texture.ImGuiHandle, iconSize);
     }
@@ -30,10 +75,7 @@ public static class Helper
     public static void DrawProgressSymbol(bool done)
     {
         ImGui.SameLine();
-        ImGui.PushFont(UiBuilder.IconFont);
-        ImGui.TextUnformatted(done
-            ? FontAwesomeIcon.Check.ToIconString()
-            : FontAwesomeIcon.Times.ToIconString());
-        ImGui.PopFont();
+        using (ImRaii.PushFont(UiBuilder.IconFont))
+            ImGui.TextUnformatted((done ? FontAwesomeIcon.Check : FontAwesomeIcon.Times).ToIconString());
     }
 }

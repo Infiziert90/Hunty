@@ -2,28 +2,23 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using CheapLoc;
+using Dalamud.Interface;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
+using Hunty.Resources;
 using ImGuiNET;
-using Lumina.Excel;
-using Lumina.Excel.Sheets;
 
 namespace Hunty.Windows;
 
 public class CompanionWindow : Window, IDisposable
 {
-    private Plugin Plugin;
-    private int selectedArea = 0;
-    private string lastArea;
+    private readonly Plugin Plugin;
 
-    private uint currentGc = 1;
-    private string currentGcName = "";
-    private ushort currentTerritory = 0;
-    private ushort lastTerritory = 0;
+    private int SelectedArea;
+    private string LastArea;
+    private ushort LastTerritory;
 
-    private static Vector2 size = new(40, 40);
-    private static readonly uint[] JobArray = { 1, 2, 3, 4, 5, 6, 7, 26, 29 };
     private static readonly Dictionary<uint, uint> RequirementIcons = new() {
         { 1, 62001 },     /* GLA/PAL */
         { 2, 62002 },     /* PGL/MNK */
@@ -39,8 +34,6 @@ public class CompanionWindow : Window, IDisposable
         { 10003, 60569 }, /* Immortal Flames */
     };
 
-    private static ExcelSheet<ClassJob> ClassJobs = null!;
-
     public CompanionWindow(Plugin plugin) : base("Hunty Companion")
     {
         SizeConstraints = new WindowSizeConstraints
@@ -50,16 +43,15 @@ public class CompanionWindow : Window, IDisposable
         };
 
         Plugin = plugin;
-        ClassJobs = Plugin.Data.GetExcelSheet<ClassJob>()!;
     }
 
     public void Dispose() { }
 
     public override void Draw()
     {
-        var currentAreas = new Dictionary<string, List<(uint, HuntingMonster)>>();
         var territories = new Dictionary<string, uint>();
-        foreach (var job in JobArray.Prepend(currentGc))
+        var currentAreas = new Dictionary<string, List<(uint, HuntingMonster)>>();
+        foreach (var job in Plugin.JobArray.Prepend(Plugin.CurrentGc))
         {
             var jobRank = Plugin.GetRankFromMemory(job);
             if (jobRank >= (job > 10000 ? 3 : 5))
@@ -85,41 +77,43 @@ public class CompanionWindow : Window, IDisposable
         var areaList = currentAreas.Keys.OrderBy(name => territories[name]).ToArray();
 
         var areaSelected = false;
-        if (lastTerritory != currentTerritory)
+        if (LastTerritory != Plugin.ClientState.TerritoryType)
         {
-            lastTerritory = currentTerritory;
-            var territoryName = territories.FirstOrDefault(x => x.Value == currentTerritory).Key;
+            LastTerritory = Plugin.ClientState.TerritoryType;
+            var territoryName = territories.FirstOrDefault(x => x.Value == Plugin.ClientState.TerritoryType).Key;
             if (territoryName != null)
             {
                 areaSelected = true;
-                selectedArea = Array.IndexOf(areaList, territoryName);
+                SelectedArea = Array.IndexOf(areaList, territoryName);
             }
         }
 
         if (!areaSelected)
-            selectedArea = areaList.Contains(lastArea) ? Array.IndexOf(areaList, lastArea) : 0;
+            SelectedArea = areaList.Contains(LastArea) ? Array.IndexOf(areaList, LastArea) : 0;
 
-        var comboWidth = ImGui.GetContentRegionAvail().X
-                         - (2 * ImGui.GetStyle().ItemSpacing.X) // Components margins
-                         - (2 * 23 * ImGuiHelpers.GlobalScale); // Size of 2 buttons
+        float arrowButtonWidth;
+        using (ImRaii.PushFont(UiBuilder.IconFont))
+            arrowButtonWidth = ImGui.CalcTextSize(FontAwesomeIcon.ArrowLeft.ToIconString()).X + (ImGui.GetStyle().FramePadding.X * 2);
+
+        var comboWidth = ImGui.GetContentRegionAvail().X - (2 * ImGui.GetStyle().ItemSpacing.X) - (arrowButtonWidth * 2);
         ImGui.PushItemWidth(comboWidth);
-        ImGui.Combo("##areaSelector", ref selectedArea, areaList, areaList.Length);
-        Helper.DrawArrows(ref selectedArea, areaList.Length, 4);
-        lastArea = areaList[selectedArea];
+        ImGui.Combo("##areaSelector", ref SelectedArea, areaList, areaList.Length);
+        Helper.DrawArrows(ref SelectedArea, areaList.Length, 4);
+        LastArea = areaList[SelectedArea];
 
         ImGuiHelpers.ScaledDummy(5.0f);
-
-        if (ImGui.BeginTable($"##monsterTable", 4))
+        using var table = ImRaii.Table("##monsterTable", 4);
+        if (table.Success)
         {
-            ImGui.TableSetupColumn("##icon", ImGuiTableColumnFlags.None, 0.2f);
-            ImGui.TableSetupColumn(Loc.Localize("Table Label: Monster", "Monster"));
-            ImGui.TableSetupColumn(Loc.Localize("Table Label: Done", "Done"), ImGuiTableColumnFlags.None, 0.4f);
-            ImGui.TableSetupColumn(Loc.Localize("Table Label: Coords", "Coords"), ImGuiTableColumnFlags.None, 1.5f);
-            ImGui.TableHeadersRow();
+            ImGui.TableSetupColumn("##icon", ImGuiTableColumnFlags.WidthFixed, Helper.IconSize.X * ImGuiHelpers.GlobalScale);
+            ImGui.TableSetupColumn(Language.TableLabelMonster);
+            ImGui.TableSetupColumn(Language.TableLabelDone, ImGuiTableColumnFlags.None, 0.4f);
+            ImGui.TableSetupColumn(Language.TableLabelCoords, ImGuiTableColumnFlags.None, 1.5f);
 
-            foreach (var (job, monster) in currentAreas[lastArea].OrderBy(a => a.Item2.Name))
+            ImGui.TableHeadersRow();
+            foreach (var (job, monster) in currentAreas[LastArea].OrderBy(a => a.Item2.Name))
             {
-                var index = monster.Locations.FindIndex(l => l.Name == lastArea);
+                var index = monster.Locations.FindIndex(l => l.Name == LastArea);
                 if (index < 0)
                     continue;
 
@@ -129,15 +123,15 @@ public class CompanionWindow : Window, IDisposable
                     continue;
 
                 ImGui.TableNextColumn();
-                Helper.DrawIcon(monster.Icon, size);
+                Helper.DrawIcon(monster.Icon);
 
                 ImGui.TableNextColumn();
                 ImGui.TextUnformatted(Plugin.GetMonsterNameLoc(monster.Id));
 
                 ImGui.TableNextColumn();
-                Helper.DrawIcon(RequirementIcons[job], size, 0.75f);
+                Helper.DrawIcon(RequirementIcons[job], 0.75f);
                 if (ImGui.IsItemHovered())
-                    ImGui.SetTooltip(Utils.ToTitleCaseExtended(job > 10000 ? currentGcName : ClassJobs.GetRow(job)!.Name));
+                    Helper.Tooltip(Utils.ToTitleCaseExtended(job > 10000 ? Plugin.CurrentGcName : Sheets.ClassJobSheet.GetRow(job).Name));
 
                 ImGui.SameLine();
                 ImGui.AlignTextToFramePadding();
@@ -153,6 +147,7 @@ public class CompanionWindow : Window, IDisposable
                             Plugin.TeleportToNearestAetheryte(monsterLocation);
                             Plugin.SetMapMarker(monsterLocation.MapLink);
                         }
+
                         ImGui.SameLine();
                     }
 
@@ -167,19 +162,6 @@ public class CompanionWindow : Window, IDisposable
 
                 ImGui.TableNextRow();
             }
-
-            ImGui.EndTable();
         }
-    }
-
-    public void SetJobAndGc(uint job, string name, uint gc, string gcName)
-    {
-        currentGc = gc;
-        currentGcName = gcName;
-    }
-
-    public void SetTerritory(ushort territory)
-    {
-        currentTerritory = territory;
     }
 }

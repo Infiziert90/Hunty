@@ -2,32 +2,22 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using CheapLoc;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
+using Hunty.Resources;
 using ImGuiNET;
-using Lumina.Excel;
-using Lumina.Excel.Sheets;
 
 namespace Hunty.Windows;
 
 public class XLWindow : Window, IDisposable
 {
-    private Plugin Plugin;
-    private int selectedArea = 0;
-    private string lastArea;
+    private readonly Plugin Plugin;
 
-    private uint currentJob = 1;
-    private string currentJobName = "";
-    private uint currentGc = 1;
-    private string currentGcName = "";
-
-    private static Vector2 size = new(40, 40);
-    private static readonly uint[] JobArray = { 1, 2, 3, 4, 5, 6, 7, 26, 29 };
-
-    private static ExcelSheet<ClassJob> ClassJobs = null!;
+    private int SelectedArea;
+    private string LastArea;
 
     public XLWindow(Plugin plugin) : base("Hunty XL")
     {
@@ -38,117 +28,108 @@ public class XLWindow : Window, IDisposable
         };
 
         Plugin = plugin;
-        ClassJobs = Plugin.Data.GetExcelSheet<ClassJob>()!;
     }
 
     public void Dispose() { }
 
     public override void Draw()
     {
-        ImGui.TextUnformatted(currentGcName);
+        ImGui.TextUnformatted(Plugin.CurrentGcName);
 
-        var skipText = Loc.Localize("Option: Skip Done", "Hide finished entries");
+        var skipText = Language.OptionSkipDone;
         var textLength = ImGui.GetTextLineHeight() + ImGui.CalcTextSize(skipText).X + ImGui.GetStyle().ItemInnerSpacing.X + ImGui.GetStyle().FramePadding.X;
         ImGui.SameLine(ImGui.GetContentRegionMax().X - textLength);
 
         if (ImGui.Checkbox(skipText, ref Plugin.Configuration.SkipDone))
             Plugin.Configuration.Save();
 
-        ImGui.TextUnformatted(currentJobName);
-
-        Plugin.HuntingData.JobRanks.TryGetValue(currentGc, out var gc);
-
-        if (!Plugin.HuntingData.JobRanks.TryGetValue(currentJob, out var selClass))
+        ImGui.TextUnformatted(Plugin.CurrentJobName);
+        if (!Plugin.HuntingData.JobRanks.TryGetValue(Plugin.CurrentJob, out _))
         {
             ImGuiHelpers.ScaledDummy(5);
             ImGui.Separator();
             ImGuiHelpers.ScaledDummy(5);
-            ImGui.TextColored(ImGuiColors.ParsedOrange,Loc.Localize("Error: No Hunting Job", "This job has no hunting log."));
+
+            Helper.TextColored(ImGuiColors.ParsedOrange, Language.ErrorNoLog);
             return;
         }
 
-        var currentRank = Plugin.GetRankFromMemory(currentJob);
+        var currentRank = Plugin.GetRankFromMemory(Plugin.CurrentJob);
         if (currentRank >= 5)
         {
             ImGuiHelpers.ScaledDummy(5);
             ImGui.Separator();
             ImGuiHelpers.ScaledDummy(5);
-            ImGui.TextColored(ImGuiColors.ParsedOrange,Loc.Localize("Error: Hunting Log finished", "This job is done with the hunting log."));
+            Helper.TextColored(ImGuiColors.ParsedOrange, Language.ErrorLogDone);
             return;
         }
 
-        var jobRanks = Plugin.HuntingData.JobRanks[currentJob];
         var currentAreas = new Dictionary<string, List<HuntingMonster>>();
-        foreach (var m in jobRanks[currentRank].Tasks.SelectMany(a => a.Monsters))
+        foreach (var m in Plugin.HuntingData.JobRanks[Plugin.CurrentJob][currentRank].Tasks.SelectMany(a => a.Monsters))
         {
             var location = m.GetLocation;
             if (location.Name == string.Empty)
                 location.InitLocation();
 
-            var name = location.Name;
-            currentAreas.GetOrCreate(name).Add(m);
+            currentAreas.GetOrCreate(location.Name).Add(m);
         }
 
         var areaList = currentAreas.Keys.ToArray();
-        selectedArea = areaList.Contains(lastArea)
-            ? Array.IndexOf(areaList, lastArea)
-            : 0;
+        SelectedArea = areaList.Contains(LastArea) ? Array.IndexOf(areaList, LastArea) : 0;
 
-        ImGui.Combo("##areaSelector", ref selectedArea, areaList, areaList.Length);
-        Helper.DrawArrows(ref selectedArea, areaList.Length, 4);
-        lastArea = areaList[selectedArea];
+        ImGui.Combo("##areaSelector", ref SelectedArea, areaList, areaList.Length);
+        Helper.DrawArrows(ref SelectedArea, areaList.Length, 4);
+        LastArea = areaList[SelectedArea];
 
         ImGuiHelpers.ScaledDummy(5);
         ImGui.Separator();
         ImGuiHelpers.ScaledDummy(5);
 
-        foreach (var job in JobArray)
+        foreach (var job in Plugin.JobArray)
         {
             var jobRank = Plugin.GetRankFromMemory(job);
             if (jobRank >= 5)
                 continue;
 
             var area = new Dictionary<string, List<HuntingMonster>>();
-            var ranks = Plugin.HuntingData.JobRanks[job];
-            foreach (var m in ranks[jobRank].Tasks.SelectMany(a => a.Monsters))
+            foreach (var m in Plugin.HuntingData.JobRanks[job][jobRank].Tasks.SelectMany(a => a.Monsters))
             {
                 var location = m.GetLocation;
                 if (location.Name == string.Empty)
                     location.InitLocation();
 
-                var name = location.Name;
-                area.GetOrCreate(name).Add(m);
+                area.GetOrCreate(location.Name).Add(m);
             }
 
-            if (!area.Any())
+            if (area.Count == 0)
                 continue;
 
-            if (!area.TryGetValue(areaList[selectedArea], out var monsters))
+            if (!area.TryGetValue(areaList[SelectedArea], out var monsters))
                 continue;
 
-            ImGui.TextColored(ImGuiColors.DalamudViolet, Utils.ToTitleCaseExtended(ClassJobs.GetRow(job)!.Name));
+            Helper.TextColored(ImGuiColors.DalamudViolet, Utils.ToTitleCaseExtended(Sheets.ClassJobSheet.GetRow(job).Name));
+
             var memoryProgress = Plugin.GetMemoryProgress(job, jobRank);
             Helper.DrawProgressSymbol(monsters.All(x => memoryProgress[x.Name].Done));
 
             ImGuiHelpers.ScaledDummy(5);
-
-            if (ImGui.BeginTable($"##monsterTable{job}", 4))
+            using var table = ImRaii.Table($"##monsterTable{job}", 4);
+            if (table.Success)
             {
-                ImGui.TableSetupColumn("##icon", ImGuiTableColumnFlags.None, 0.2f);
-                ImGui.TableSetupColumn(Loc.Localize("Table Label: Monster", "Monster"));
-                ImGui.TableSetupColumn(Loc.Localize("Table Label: Done", "Done"), ImGuiTableColumnFlags.None, 0.4f);
-                ImGui.TableSetupColumn(Loc.Localize("Table Label: Coords", "Coords"), ImGuiTableColumnFlags.None, 1.5f);
+                ImGui.TableSetupColumn("##icon", ImGuiTableColumnFlags.WidthFixed, Helper.IconSize.X * ImGuiHelpers.GlobalScale);
+                ImGui.TableSetupColumn(Language.TableLabelMonster);
+                ImGui.TableSetupColumn(Language.TableLabelDone, ImGuiTableColumnFlags.None, 0.4f);
+                ImGui.TableSetupColumn(Language.TableLabelCoords, ImGuiTableColumnFlags.None, 1.5f);
 
                 ImGui.TableHeadersRow();
-
                 foreach (var monster in monsters)
                 {
                     var monsterProgress = memoryProgress[monster.Name];
-                    if (Plugin.Configuration.SkipDone &&  monsterProgress.Done)
+                    if (Plugin.Configuration.SkipDone && monsterProgress.Done)
                         continue;
 
                     ImGui.TableNextColumn();
-                    Helper.DrawIcon(monster.Icon, size);
+                    Helper.DrawIcon(monster.Icon);
 
                     ImGui.TableNextColumn();
                     ImGui.TextUnformatted(Plugin.GetMonsterNameLoc(monster.Id));
@@ -156,9 +137,8 @@ public class XLWindow : Window, IDisposable
                     ImGui.TableNextColumn();
                     if (monsterProgress.Done)
                     {
-                        ImGui.PushFont(UiBuilder.IconFont);
-                        ImGui.TextUnformatted(FontAwesomeIcon.Check.ToIconString());
-                        ImGui.PopFont();
+                        using (ImRaii.PushFont(UiBuilder.IconFont))
+                            ImGui.TextUnformatted(FontAwesomeIcon.Check.ToIconString());
                     }
                     else
                     {
@@ -175,34 +155,22 @@ public class XLWindow : Window, IDisposable
                                 Plugin.TeleportToNearestAetheryte(monster.GetLocation);
                                 Plugin.SetMapMarker(monster.GetLocation.MapLink);
                             }
+
                             ImGui.SameLine();
                         }
 
                         if (ImGui.Selectable($"{monster.GetLocation.Name} {monster.GetCoordinates}##{job}{monster.Icon.ToString()}"))
-                        {
                             Plugin.SetMapMarker(monster.GetLocation.MapLink);
-                        }
                     }
                     else
                     {
                         if (ImGui.Selectable($"{monster.GetLocation.DutyName}##{job}{monster.Icon.ToString()}"))
-                        {
                             Plugin.OpenDutyFinder(monster.GetLocation.DutyKey);
-                        }
                     }
 
                     ImGui.TableNextRow();
                 }
             }
-            ImGui.EndTable();
         }
-    }
-
-    public void SetJobAndGc(uint job, string name, uint gc, string gcName)
-    {
-        currentJob = job;
-        currentJobName = name;
-        currentGc = gc;
-        currentGcName = gcName;
     }
 }

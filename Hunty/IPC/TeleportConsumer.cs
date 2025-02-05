@@ -15,9 +15,7 @@ public class TeleportConsumer
         get
         {
             if (TimeSinceLastCheck + 5000 > Environment.TickCount64)
-            {
                 return Available;
-            }
 
             try
             {

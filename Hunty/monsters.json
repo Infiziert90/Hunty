@@ -3273,8 +3273,8 @@
                     "Terri": 146,
                     "Map": 23,
                     "Zone": 0,
-                    "xCoord": 19.0,
-                    "yCoord": 34.0
+                    "xCoord": 20.5,
+                    "yCoord": 35.0
                   }
                 ]
               },
@@ -3328,7 +3328,7 @@
                     "Terri": 137,
                     "Map": 17,
                     "Zone": 0,
-                    "xCoord": 31.0,
+                    "xCoord": 31.5,
                     "yCoord": 26.0
                   }
                 ]
@@ -5073,8 +5073,8 @@
                     "Terri": 148,
                     "Map": 4,
                     "Zone": 0,
-                    "xCoord": 25.0,
-                    "yCoord": 27.0
+                    "xCoord": 22.5,
+                    "yCoord": 17.5
                   },
                   {
                     "Terri": 140,

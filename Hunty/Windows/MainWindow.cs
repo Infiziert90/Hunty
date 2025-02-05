@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using CheapLoc;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
+using Hunty.Resources;
 using ImGuiNET;
-using Lumina.Excel.Sheets;
 
 namespace Hunty.Windows;
 
@@ -15,23 +15,14 @@ public class MainWindow : Window, IDisposable
 {
     private readonly Plugin Plugin;
 
-    private int selectedClass;
-    private int selectedRank;
-    private int selectedArea;
+    private int SelectedClass;
+    private int SelectedRank;
+    private int SelectedArea;
 
-    private bool openGrandCompany;
+    private bool OpenGrandCompany;
 
-    private uint currentJob = 1;
-    private string currentJobName = "";
-    private uint currentGc = 1;
-    private string currentGcName = "";
-
-    private Dictionary<string, List<HuntingMonster>> currentAreas = new();
-
-    private readonly Vector4 redColor = new(0.980f, 0.245f, 0.245f, 1.0f);
-    private static Vector2 size = new(40, 40);
-    private static string[] jobs = new string[9];
-    private static readonly uint[] JobArray = [1, 2, 3, 4, 5, 6, 7, 26, 29];
+    private static readonly string[] Jobs = new string[9];
+    private readonly Dictionary<string, List<HuntingMonster>> CurrentAreas = new();
 
     public MainWindow(Plugin plugin) : base("Hunty")
     {
@@ -42,55 +33,51 @@ public class MainWindow : Window, IDisposable
         };
 
         Plugin = plugin;
-    }
 
-    public void Initialize()
-    {
-        var classJobs = Plugin.Data.GetExcelSheet<ClassJob>()!;
-        for (var i = 0; i < JobArray.Length; i++)
-            jobs[i] = Utils.ToTitleCaseExtended(classJobs.GetRow(JobArray[i]).Name);
+        for (var i = 0; i < Plugin.JobArray.Length; i++)
+            Jobs[i] = Utils.ToTitleCaseExtended(Sheets.ClassJobSheet.GetRow(Plugin.JobArray[i]).Name);
     }
 
     public void Dispose() { }
 
     public override void Draw()
     {
-        var oldRank = selectedRank;
-        var oldClass = selectedClass;
+        var oldRank = SelectedRank;
+        var oldClass = SelectedClass;
 
+        ImGui.AlignTextToFramePadding();
         List<HuntingRank> selClass;
-        if (openGrandCompany)
+        if (OpenGrandCompany)
         {
-            Plugin.HuntingData.JobRanks.TryGetValue(currentGc, out selClass);
-            ImGui.TextUnformatted(currentGcName);
+            Plugin.HuntingData.JobRanks.TryGetValue(Plugin.CurrentGc, out selClass);
+            ImGui.TextUnformatted(Plugin.CurrentGcName);
         }
-        else if (!Plugin.HuntingData.JobRanks.TryGetValue(currentJob, out selClass))
+        else if (!Plugin.HuntingData.JobRanks.TryGetValue(Plugin.CurrentJob, out selClass))
         {
-            ImGui.Combo("##classSelector", ref selectedClass, jobs, jobs.Length);
-            Helper.DrawArrows(ref selectedClass, jobs.Length, 0);
+            ImGui.Combo("##classSelector", ref SelectedClass, Jobs, Jobs.Length);
+            Helper.DrawArrows(ref SelectedClass, Jobs.Length);
 
-            selClass = Plugin.HuntingData.JobRanks[JobArray[selectedClass]];
+            selClass = Plugin.HuntingData.JobRanks[Plugin.JobArray[SelectedClass]];
         }
         else
         {
-            ImGui.TextUnformatted(currentJobName);
+            ImGui.TextUnformatted(Plugin.CurrentJobName);
         }
 
-        var btnText = openGrandCompany ? Loc.Localize("Button: Jobs", "Jobs") : Loc.Localize("Button: Grand Company", "Grand Company");
+        var btnText = OpenGrandCompany ? Language.ButtonJobs : Language.ButtonGrandCompany;
         var textLength = ImGui.CalcTextSize(btnText).X;
-        var scrollBarSpacing = ImGui.GetScrollMaxY() == 0 ? 0.0f : 15.0f;
-        ImGui.SameLine(ImGui.GetWindowWidth() - 15.0f - textLength - scrollBarSpacing);
+        ImGui.SameLine(ImGui.GetContentRegionAvail().X - textLength);
 
         if (ImGui.Button(btnText))
         {
-            openGrandCompany ^= true;
+            OpenGrandCompany ^= true;
             Defaults();
             return;
         }
 
-        if (openGrandCompany && currentGc == 10000)
+        if (OpenGrandCompany && Plugin.CurrentGc == 10000)
         {
-            ImGui.TextColored(redColor,Loc.Localize("Error: No Grand Company", "This character has no Grand Company."));
+            Helper.TextColored(Helper.RedColor, Language.ErrorNoGrandCompany);
             return;
         }
 
@@ -98,41 +85,38 @@ public class MainWindow : Window, IDisposable
         ImGui.Separator();
         ImGuiHelpers.ScaledDummy(5);
 
-        var current = !openGrandCompany ? JobArray[selectedClass] : currentGc;
+        var current = !OpenGrandCompany ? Plugin.JobArray[SelectedClass] : Plugin.CurrentGc;
 
-        var rankList = selClass!.Select((_, i) => $"{Loc.Localize("Selector: Rank", "Rank")} {i+1}").ToArray();
-        ImGui.Combo("##rankSelector", ref selectedRank, rankList, rankList.Length);
-        Helper.DrawArrows(ref selectedRank, rankList.Length, 2);
-        Helper.DrawProgressSymbol(selectedRank < Plugin.GetRankFromMemory(current));
+        var rankList = selClass!.Select((_, i) => $"{Language.SelectorRank} {i+1}").ToArray();
+        ImGui.Combo("##rankSelector", ref SelectedRank, rankList, rankList.Length);
+        Helper.DrawArrows(ref SelectedRank, rankList.Length, 2);
+        Helper.DrawProgressSymbol(SelectedRank < Plugin.GetRankFromMemory(current));
 
         FillCurrentAreas(oldRank, oldClass, selClass);
 
-        var areaList = currentAreas.Keys.ToArray();
-        ImGui.Combo("##areaSelector", ref selectedArea, areaList, areaList.Length);
-        Helper.DrawArrows(ref selectedArea, areaList.Length, 4);
+        var areaList = CurrentAreas.Keys.ToArray();
+        ImGui.Combo("##areaSelector", ref SelectedArea, areaList, areaList.Length);
+        Helper.DrawArrows(ref SelectedArea, areaList.Length, 4);
 
-        var monsters = currentAreas[areaList[selectedArea]];
-        var memoryProgress = Plugin.GetMemoryProgress(current, selectedRank);
+        var monsters = CurrentAreas[areaList[SelectedArea]];
+        var memoryProgress = Plugin.GetMemoryProgress(current, SelectedRank);
         Helper.DrawProgressSymbol(monsters.All(x => memoryProgress[x.Name].Done));
 
         ImGuiHelpers.ScaledDummy(10);
 
-        if (ImGui.BeginTable("##monsterTable", 4))
+        using var table = ImRaii.Table("##monsterTable", 4);
+        if (table.Success)
         {
-            ImGui.TableSetupColumn("##icon", ImGuiTableColumnFlags.None, 0.2f);
-            ImGui.TableSetupColumn(Loc.Localize("Table Label: Monster", "Monster"));
-            ImGui.TableSetupColumn(Loc.Localize("Table Label: Done", "Done"), ImGuiTableColumnFlags.None, 0.4f);
-            ImGui.TableSetupColumn(monsters.First().IsOpenWorld
-                ? Loc.Localize("Table Label: Coords", "Coords")
-                : Loc.Localize("Table Label: Dungeon", "Dungeon")
-                , ImGuiTableColumnFlags.None, 1.5f);
+            ImGui.TableSetupColumn("##icon", ImGuiTableColumnFlags.WidthFixed, Helper.IconSize.X * ImGuiHelpers.GlobalScale);
+            ImGui.TableSetupColumn(Language.TableLabelMonster);
+            ImGui.TableSetupColumn(Language.TableLabelDone, ImGuiTableColumnFlags.None, 0.4f);
+            ImGui.TableSetupColumn(monsters[0].IsOpenWorld ? Language.TableLabelCoords : Language.TableLabelDungeon, ImGuiTableColumnFlags.None, 1.5f);
 
             ImGui.TableHeadersRow();
-
             foreach (var monster in monsters)
             {
                 ImGui.TableNextColumn();
-                Helper.DrawIcon(monster.Icon, size);
+                Helper.DrawIcon(monster.Icon);
 
                 ImGui.TableNextColumn();
                 ImGui.TextUnformatted(Plugin.GetMonsterNameLoc(monster.Id));
@@ -141,9 +125,8 @@ public class MainWindow : Window, IDisposable
                 var monsterProgress = memoryProgress[monster.Name];
                 if (monsterProgress.Done)
                 {
-                    ImGui.PushFont(UiBuilder.IconFont);
-                    ImGui.TextUnformatted(FontAwesomeIcon.Check.ToIconString());
-                    ImGui.PopFont();
+                    using (ImRaii.PushFont(UiBuilder.IconFont))
+                        ImGui.TextUnformatted(FontAwesomeIcon.Check.ToIconString());
                 }
                 else
                 {
@@ -160,64 +143,50 @@ public class MainWindow : Window, IDisposable
                             Plugin.TeleportToNearestAetheryte(monster.GetLocation);
                             Plugin.SetMapMarker(monster.GetLocation.MapLink);
                         }
+
                         ImGui.SameLine();
                     }
 
                     if (ImGui.Selectable($"{monster.GetLocation.Name} {monster.GetCoordinates}##{monster.Icon.ToString()}"))
-                    {
                         Plugin.SetMapMarker(monster.GetLocation.MapLink);
-                    }
                 }
                 else
                 {
                     if (ImGui.Selectable($"{monster.GetLocation.DutyName}##{monster.Icon.ToString()}"))
-                    {
                         Plugin.OpenDutyFinder(monster.GetLocation.DutyKey);
-                    }
                 }
 
                 ImGui.TableNextRow();
             }
         }
-        ImGui.EndTable();
     }
 
-    private void Defaults()
+    public void Defaults()
     {
-        selectedClass = 0;
-        selectedRank = 0;
-        selectedArea = 0;
+        SelectedClass = 0;
+        SelectedRank = 0;
+        SelectedArea = 0;
 
-        if (Plugin.HuntingData.JobRanks.ContainsKey(currentJob))
-            selectedClass = Array.IndexOf(JobArray, currentJob);
+        if (Plugin.HuntingData.JobRanks.ContainsKey(Plugin.CurrentJob))
+            SelectedClass = Array.IndexOf(Plugin.JobArray, Plugin.CurrentJob);
 
-        currentAreas.Clear();
-    }
-
-    public void SetJobAndGc(uint job, string name, uint gc, string gcName)
-    {
-        currentJob = job;
-        currentJobName = name;
-        currentGc = gc;
-        currentGcName = gcName;
-
-        Defaults();
+        CurrentAreas.Clear();
     }
 
     private void FillCurrentAreas(int oldRank, int oldClass, IReadOnlyList<HuntingRank> selClass)
     {
-        if (selectedRank == oldRank && selectedClass == oldClass && currentAreas.Any()) return;
+        if (SelectedRank == oldRank && SelectedClass == oldClass && CurrentAreas.Count != 0)
+            return;
 
-        currentAreas.Clear();
-        selectedArea = 0;
-
-        foreach (var m in selClass![selectedRank].Tasks.SelectMany(a => a.Monsters))
+        SelectedArea = 0;
+        CurrentAreas.Clear();
+        foreach (var m in selClass![SelectedRank].Tasks.SelectMany(a => a.Monsters))
         {
             var location = m.Locations[0];
-            if (location.Name == string.Empty) location.InitLocation();
+            if (location.Name == string.Empty)
+                location.InitLocation();
 
-            var name = !location.IsDuty ? location.Name : location.DutyName;
-            currentAreas.GetOrCreate(name).Add(m);
+            CurrentAreas.GetOrCreate(location.IsDuty ? location.DutyName: location.Name).Add(m);
         }
     }
 }

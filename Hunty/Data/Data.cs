@@ -24,10 +24,10 @@ public static class StaticData
         };
     }
 
-    public static readonly List<string> GermanPronouns = new()
-    {
+    public static readonly List<string> GermanPronouns =
+    [
         "er",
         "e",
         "es"
-    };
+    ];
 }
