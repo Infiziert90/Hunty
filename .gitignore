@@ -4,3 +4,4 @@ builds/
 .idea
 .git/
 Hunty.sln.DotSettings.user
+bin/

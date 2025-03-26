@@ -1,10 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Dalamud.NET.Sdk/12.0.2">
 	<PropertyGroup>
-		<TargetFramework>net8.0-windows</TargetFramework>
+		<TargetFramework>net9.0-windows</TargetFramework>
 		<LangVersion>latest</LangVersion>
 		<PackageId>Hunty</PackageId>
 		<Authors>Infi</Authors>
-		<Version>1.3.2.1</Version>
+		<Version>1.3.3.0</Version>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -14,7 +14,6 @@
 		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<OutputType>Library</OutputType>
-		<OutputPath>..\builds\$(Configuration)\</OutputPath>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 	</PropertyGroup>
@@ -29,41 +28,6 @@
 		<Content Include="images\icon.png">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
-	</ItemGroup>
-
-	<ItemGroup>
-        <PackageReference Include="DalamudPackager" Version="11.0.0" />
-    </ItemGroup>
-
-	<PropertyGroup>
-		<DalamudLibPath>$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
-	</PropertyGroup>
-
-	<ItemGroup>
-		<Reference Include="Dalamud">
-		  <HintPath>$(DalamudLibPath)Dalamud.dll</HintPath>
-		  <Private>false</Private>
-		</Reference>
-		<Reference Include="ImGui.NET">
-		  <HintPath>$(DalamudLibPath)ImGui.NET.dll</HintPath>
-		  <Private>false</Private>
-		</Reference>
-		<Reference Include="Lumina">
-		  <HintPath>$(DalamudLibPath)Lumina.dll</HintPath>
-		  <Private>false</Private>
-		</Reference>
-		<Reference Include="Lumina.Excel">
-		  <HintPath>$(DalamudLibPath)Lumina.Excel.dll</HintPath>
-		  <Private>false</Private>
-		</Reference>
-		<Reference Include="FFXIVClientStructs">
-			<HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="Newtonsoft.Json">
-			<HintPath>$(DalamudLibPath)Newtonsoft.Json.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
 	</ItemGroup>
 
 	<ItemGroup>
