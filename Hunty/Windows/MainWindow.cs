@@ -109,8 +109,8 @@ public class MainWindow : Window, IDisposable
         {
             ImGui.TableSetupColumn("##icon", ImGuiTableColumnFlags.WidthFixed, Helper.IconSize.X * ImGuiHelpers.GlobalScale);
             ImGui.TableSetupColumn(Language.TableLabelMonster);
-            ImGui.TableSetupColumn(Language.TableLabelDone, ImGuiTableColumnFlags.None, 0.4f);
-            ImGui.TableSetupColumn(monsters[0].IsOpenWorld ? Language.TableLabelCoords : Language.TableLabelDungeon, ImGuiTableColumnFlags.None, 1.5f);
+            ImGui.TableSetupColumn(Language.TableLabelDone, ImGuiTableColumnFlags.WidthStretch, 0.4f);
+            ImGui.TableSetupColumn(monsters[0].IsOpenWorld ? Language.TableLabelCoords : Language.TableLabelDungeon, ImGuiTableColumnFlags.WidthStretch, 1.5f);
 
             ImGui.TableHeadersRow();
             foreach (var monster in monsters)
