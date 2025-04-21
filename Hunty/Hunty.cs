@@ -186,9 +186,9 @@ public sealed class Plugin : IDalamudPlugin
         }
     }
 
-    private void OnCommand(string command, string args) => MainWindow.IsOpen = true;
-    private void OnXLCommand(string command, string args) => XLWindow.IsOpen = true;
-    private void OnCompanionCommand(string command, string args) => CompanionWindow.IsOpen = true;
+    private void OnCommand(string command, string args) => MainWindow.Toggle();
+    private void OnXLCommand(string command, string args) => XLWindow.Toggle();
+    private void OnCompanionCommand(string command, string args) => CompanionWindow.Toggle();
     private void DrawUi() => WindowSystem.Draw();
     private void OpenMainWindow() => MainWindow.Toggle();
     private void OpenConfigWindow() => ConfigWindow.Toggle();
