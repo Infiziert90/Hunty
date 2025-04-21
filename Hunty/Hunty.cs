@@ -6,7 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using Dalamud.Game;
+using Dalamud.Game.ClientState.Objects.Enums;
 using Hunty.Windows;
 using Dalamud.Game.Command;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
@@ -24,6 +24,7 @@ using Newtonsoft.Json;
 
 namespace Hunty;
 
+#pragma warning disable SeStringEvaluator
 public sealed class Plugin : IDalamudPlugin
 {
     [PluginService] public static IDalamudPluginInterface PluginInterface { get; set; } = null!;
@@ -35,6 +36,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] public static IFramework Framework { get; set; } = null!;
     [PluginService] public static IPluginLog Log { get; set; } = null!;
     [PluginService] public static ITextureProvider Texture { get; set; } = null!;
+    [PluginService] public static ISeStringEvaluator Evaluator { get; set; } = null!;
 
     private const string CommandName = "/hunty";
     private const string CommandXL = "/huntyxl";
@@ -235,7 +237,7 @@ public sealed class Plugin : IDalamudPlugin
     // From: https://github.com/SheepGoMeh/HuntBuddy/blob/5a92e0e104839c30eaf398790dee32b793c3c53e/HuntBuddy/Location.cs#L520
     public static void TeleportToNearestAetheryte(HuntingMonsterLocation location)
     {
-        var map = Sheets.MapSheet.GetRow(location.Map)!;
+        var map = Sheets.MapSheet.GetRow(location.Map);
         var nearestAetheryteId = Sheets.MapMarkerSheet
                                        .SelectMany(x => x)
                                        .Where(x => x.DataType == 3 && x.RowId == map.MapMarkerRange)
@@ -275,12 +277,7 @@ public sealed class Plugin : IDalamudPlugin
 
     public static string GetMonsterNameLoc(uint id)
     {
-        var npc = Sheets.BNpcName.GetRow(id);
-        var correctedName = Utils.ToTitleCaseExtended(npc.Singular, npc.Article);
-
-        if (ClientState.ClientLanguage == ClientLanguage.German)
-            correctedName = Utils.CorrectGermanNames(correctedName, npc.Pronoun);
-
-        return correctedName;
+        var npcName = Sheets.BNpcName.GetRow(id);
+        return Evaluator.EvaluateObjStr(ObjectKind.BattleNpc, npcName.RowId);
     }
 }

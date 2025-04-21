@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace Hunty.Data;
 
 public static class StaticData
@@ -23,11 +21,4 @@ public static class StaticData
             _ => 0
         };
     }
-
-    public static readonly List<string> GermanPronouns =
-    [
-        "er",
-        "e",
-        "es"
-    ];
 }

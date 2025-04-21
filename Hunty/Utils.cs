@@ -36,21 +36,6 @@ public static class Utils
         return sb.ToString();
     }
 
-    public static string CorrectGermanNames(string name, sbyte pronoun)
-    {
-        if (name.Contains("[a]"))
-        {
-            var s = StaticData.GermanPronouns.ElementAtOrDefault(pronoun);
-            name = name.Replace("[a]", s);
-        }
-        else if (name.Contains("[p]"))
-        {
-            name = name.Replace("[p]", "");
-        }
-
-        return name;
-    }
-
     public static TValue GetOrCreate<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key) where TValue : new()
     {
         if (!dict.TryGetValue(key, out TValue val))

@@ -142,7 +142,8 @@ public class CompanionWindow : Window, IDisposable
                 {
                     if (Plugin.TeleportConsumer.IsAvailable)
                     {
-                        if (ImGui.Button($"T##{job}{monster.Name}{monster.Icon.ToString()}{monster.Count}"))
+                        using var pushedFont = ImRaii.PushFont(UiBuilder.IconFont);
+                        if (ImGui.Button($"{FontAwesomeIcon.StreetView.ToIconString()}##{job}{monster.Name}{monster.Icon.ToString()}{monster.Count}"))
                         {
                             Plugin.TeleportToNearestAetheryte(monsterLocation);
                             Plugin.SetMapMarker(monsterLocation.MapLink);
