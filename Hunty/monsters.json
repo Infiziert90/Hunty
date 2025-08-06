@@ -4684,7 +4684,7 @@
                 ]
               },
               {
-                "Id": 112,
+                "Id": 171,
                 "Name": "Lesser Kalong",
                 "Count": 3,
                 "Icon": 63020,
@@ -12723,7 +12723,7 @@
             "Name": "Immortal Flames 11",
             "Monsters": [
               {
-                "Id": 248,
+                "Id": 2155,
                 "Name": "Amalj'aa Halberdier",
                 "Count": 3,
                 "Icon": 63051,
