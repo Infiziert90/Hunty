@@ -3,7 +3,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 
 namespace Hunty.Windows;
 
@@ -69,7 +69,7 @@ public static class Helper
     {
         var iconSize = IconSize * ImGuiHelpers.GlobalScale * scale;
         var texture = Plugin.Texture.GetFromGameIcon(iconId).GetWrapOrEmpty();
-        ImGui.Image(texture.ImGuiHandle, iconSize);
+        ImGui.Image(texture.Handle, iconSize);
     }
 
     public static void DrawProgressSymbol(bool done)

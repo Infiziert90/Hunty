@@ -7,7 +7,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using Hunty.Resources;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 
 namespace Hunty.Windows;
 

@@ -1,9 +1,9 @@
 using System.Numerics;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Hunty.Resources;
-using ImGuiNET;
 
 namespace Hunty.Windows.Config;
 

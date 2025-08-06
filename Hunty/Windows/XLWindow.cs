@@ -8,7 +8,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using Hunty.Resources;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 
 namespace Hunty.Windows;
 
@@ -60,7 +60,7 @@ public class XLWindow : Window, IDisposable
             ImGuiHelpers.ScaledDummy(5);
             ImGui.Separator();
             ImGuiHelpers.ScaledDummy(5);
-            Helper.TextColored(ImGuiColors.ParsedOrange, Language.ErrorLogDone);
+            Helper.TextColored(ImGuiColors.HealerGreen, Language.ErrorLogDone);
             return;
         }
 
