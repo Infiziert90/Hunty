@@ -53,6 +53,10 @@ public class CompanionWindow : Window, IDisposable
         var currentAreas = new Dictionary<string, List<(uint, HuntingMonster)>>();
         foreach (var job in Plugin.JobArray.Prepend(Plugin.CurrentGc))
         {
+            // No GC, skip this build step
+            if (job == 10000)
+                continue;
+
             var jobRank = Plugin.GetRankFromMemory(job);
             if (jobRank >= (job > 10000 ? 3 : 5))
                 continue;
