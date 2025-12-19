@@ -22,7 +22,7 @@ public class HuntingRank
 [Serializable]
 public class HuntingTask
 {
-    public string Name;
+    public string Name = string.Empty;
     public List<HuntingMonster> Monsters { get; set; } = [];
 }
 
@@ -30,7 +30,7 @@ public class HuntingTask
 public class HuntingMonster
 {
     public uint Id { get; set; }
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
     public byte Count { get; set; }
     public uint Icon { get; set; }
 

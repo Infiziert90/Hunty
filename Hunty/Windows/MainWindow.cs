@@ -92,7 +92,7 @@ public class MainWindow : Window, IDisposable
         Helper.DrawArrows(ref SelectedRank, rankList.Length, 2);
         Helper.DrawProgressSymbol(SelectedRank < Plugin.GetRankFromMemory(current));
 
-        FillCurrentAreas(oldRank, oldClass, selClass);
+        FillCurrentAreas(oldRank, oldClass, selClass!);
 
         var areaList = CurrentAreas.Keys.ToArray();
         ImGui.Combo("##areaSelector", ref SelectedArea, areaList, areaList.Length);

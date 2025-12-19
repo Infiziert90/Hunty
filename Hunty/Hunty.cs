@@ -31,6 +31,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] public static IDataManager Data { get; set; } = null!;
     [PluginService] public static IChatGui ChatGui { get; set; } = null!;
     [PluginService] public static IClientState ClientState { get; set; } = null!;
+    [PluginService] public static IPlayerState PlayerState { get; set; } = null!;
     [PluginService] public static ICommandManager CommandManager { get; set; } = null!;
     [PluginService] public static IGameGui GameGui { get; set; } = null!;
     [PluginService] public static IFramework Framework { get; set; } = null!;
@@ -106,7 +107,7 @@ public sealed class Plugin : IDalamudPlugin
 
             var path = Path.Combine(PluginInterface.AssemblyLocation.Directory!.FullName, "monsters.json");
             var jsonString = File.ReadAllText(path);
-            HuntingData = JsonConvert.DeserializeObject<HuntingData>(jsonString);
+            HuntingData = JsonConvert.DeserializeObject<HuntingData>(jsonString)!;
         }
         catch (Exception ex)
         {
@@ -143,10 +144,10 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnLogin()
     {
-        if (ClientState.LocalPlayer == null)
+        if (!PlayerState.IsLoaded)
             return;
 
-        var currentJobRes = ClientState.LocalPlayer.ClassJob;
+        var currentJobRes = PlayerState.ClassJob;
         CurrentJobId = currentJobRes.RowId;
         CurrentJobParent = currentJobRes.Value.ClassJobParent.Value;
 
@@ -162,10 +163,10 @@ public sealed class Plugin : IDalamudPlugin
 
     private void CheckJobChange(IFramework framework)
     {
-        if (ClientState.LocalPlayer == null)
+        if (!PlayerState.IsLoaded)
             return;
 
-        var currentJobRes = ClientState.LocalPlayer.ClassJob;
+        var currentJobRes = PlayerState.ClassJob;
         if (currentJobRes.RowId != CurrentJobId)
         {
             CurrentJobId = currentJobRes.RowId;
@@ -249,7 +250,7 @@ public sealed class Plugin : IDalamudPlugin
                                                    ConvertLocationToRaw(marker.X, marker.Y, map.SizeFactor)),
                                                rowId = marker.DataKey.RowId
                                            })
-                                       .MinBy(x => x.distance).rowId;
+                                       .MinBy(x => x.distance)?.rowId ?? 0;
 
         // Support the unique case of aetheryte not being in the same map
         var nearestAetheryte = location.Terri == 399

@@ -17,7 +17,7 @@ public class XLWindow : Window, IDisposable
     private readonly Plugin Plugin;
 
     private int SelectedArea;
-    private string LastArea;
+    private string LastArea = string.Empty;
 
     public XLWindow(Plugin plugin) : base("Hunty XL")
     {
