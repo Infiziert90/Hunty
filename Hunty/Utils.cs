@@ -16,9 +16,9 @@ public static class Utils
     public static string ToTitleCaseExtended(ReadOnlySeString s, sbyte article = 0)
     {
         if (article == 1)
-            return s.ToDalamudString().ToString();
+            return s.ToString();
 
-        var sb        = new StringBuilder(s.ToDalamudString().ToString());
+        var sb        = new StringBuilder(s.ToString());
         var lastSpace = true;
         for (var i = 0; i < sb.Length; ++i)
         {

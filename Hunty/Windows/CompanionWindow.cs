@@ -16,8 +16,8 @@ public class CompanionWindow : Window, IDisposable
     private readonly Plugin Plugin;
 
     private int SelectedArea;
-    private string LastArea;
-    private ushort LastTerritory;
+    private string LastArea = string.Empty;
+    private uint LastTerritory;
 
     private static readonly Dictionary<uint, uint> RequirementIcons = new() {
         { 1, 62001 },     /* GLA/PAL */

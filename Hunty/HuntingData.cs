@@ -86,7 +86,7 @@ public class HuntingMonsterLocation
         if (content == null)
             return;
 
-        if (ToTitleCaseExtended(content.Value.Name) == "")
+        if (content.Value.Name.IsEmpty)
             return;
 
         IsDuty = true;
