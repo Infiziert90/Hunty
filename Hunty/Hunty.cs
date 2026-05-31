@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using Dalamud.Game;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Hunty.Windows;
 using Dalamud.Game.Command;
@@ -13,7 +14,6 @@ using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Hunty.Data;
 using Hunty.IPC;
@@ -116,6 +116,8 @@ public sealed class Plugin : IDalamudPlugin
 
         Framework.Update += CheckJobChange;
         ClientState.Login += OnLogin;
+
+        GetAllMonsterLoc();
     }
 
     public void Dispose()
@@ -144,21 +146,7 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnLogin()
     {
-        if (!PlayerState.IsLoaded)
-            return;
-
-        var currentJobRes = PlayerState.ClassJob;
-        CurrentJobId = currentJobRes.RowId;
-        CurrentJobParent = currentJobRes.Value.ClassJobParent.Value;
-
-        var name = Utils.ToTitleCaseExtended(CurrentJobParent.Name);
-        Log.Debug($"Logging in on: {name}");
-        CurrentJob = CurrentJobParent.RowId;
-        CurrentJobName = name;
-        CurrentGc = GetGrandCompany();
-        CurrentGcName = GetCurrentGcName();
-
-        MainWindow.Defaults();
+        SetCurrentState();
     }
 
     private void CheckJobChange(IFramework framework)
@@ -173,18 +161,26 @@ public sealed class Plugin : IDalamudPlugin
 
             var parentJob = currentJobRes.Value.ClassJobParent;
             if (parentJob.RowId != CurrentJobParent.RowId)
-            {
-                CurrentJobParent = parentJob.Value!;
-                var name = Utils.ToTitleCaseExtended(CurrentJobParent.Name);
-                Log.Debug($"Job switch: {name}");
-                CurrentJob = parentJob.RowId;
-                CurrentJobName = name;
-                CurrentGc = GetGrandCompany();
-                CurrentGcName = GetCurrentGcName();
-
-                MainWindow.Defaults();
-            }
+                SetCurrentState();
         }
+    }
+
+    private void SetCurrentState()
+    {
+        if (!PlayerState.IsLoaded)
+            return;
+
+        var currentJobRes = PlayerState.ClassJob;
+        CurrentJobId = currentJobRes.RowId;
+        CurrentJobParent = currentJobRes.Value.ClassJobParent.Value;
+
+        var name = Utils.ToTitleCaseExtended(CurrentJobParent.Name);
+        CurrentJob = CurrentJobParent.RowId;
+        CurrentJobName = name;
+        CurrentGc = GetGrandCompany();
+        CurrentGcName = GetCurrentGcName();
+
+        MainWindow.Defaults();
     }
 
     private void OnCommand(string command, string args) => MainWindow.Toggle();
@@ -196,7 +192,7 @@ public sealed class Plugin : IDalamudPlugin
 
     public void SetMapMarker(MapLinkPayload map) => GameGui.OpenMapWithMapLink(map);
     public unsafe void OpenDutyFinder(uint key) => AgentContentsFinder.Instance()->OpenRegularDuty(key);
-    public unsafe uint GetGrandCompany() => UIState.Instance()->PlayerState.GrandCompany + (uint) 10000;
+    public uint GetGrandCompany() => PlayerState.GrandCompany.RowId + 10000;
     public string GetCurrentGcName() => Utils.ToTitleCaseExtended(Sheets.GrandCompanySheet.GetRow(GetGrandCompany() - 10000).Name);
     public unsafe int GetRankFromMemory(uint job) => MonsterNoteManager.Instance()->RankData[StaticData.JobInMemory(job)].Rank;
 
@@ -278,7 +274,25 @@ public sealed class Plugin : IDalamudPlugin
 
     public static string GetMonsterNameLoc(uint id)
     {
-        var npcName = Sheets.BNpcName.GetRow(id);
-        return Evaluator.EvaluateObjStr(ObjectKind.BattleNpc, npcName.RowId);
+        return Evaluator.EvaluateObjStr(ObjectKind.BattleNpc, id);
+    }
+
+    public record BnpcNames(string En, string De, string Fr, string Jp);
+    public static void GetAllMonsterLoc()
+    {
+        var path = Path.Combine(PluginInterface.AssemblyLocation.Directory!.FullName, "bNpcNames.json");
+
+        var dict = new Dictionary<uint, BnpcNames>();
+        foreach (var key in Sheets.BNpcName)
+        {
+            dict[key.RowId] = new BnpcNames(
+                Evaluator.EvaluateObjStr(ObjectKind.BattleNpc, key.RowId),
+                Evaluator.EvaluateObjStr(ObjectKind.BattleNpc, key.RowId, ClientLanguage.German),
+                Evaluator.EvaluateObjStr(ObjectKind.BattleNpc, key.RowId, ClientLanguage.French),
+                Evaluator.EvaluateObjStr(ObjectKind.BattleNpc, key.RowId, ClientLanguage.Japanese)
+            );
+        }
+
+        File.WriteAllText(path, JsonConvert.SerializeObject(dict));
     }
 }
