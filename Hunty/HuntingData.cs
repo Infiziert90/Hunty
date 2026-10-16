@@ -57,6 +57,7 @@ public class HuntingMonsterLocation
     [JsonIgnore] public string DutyName = string.Empty;
     [JsonIgnore] public MapLinkPayload MapLink = null!;
     [JsonIgnore] public Vector2 Coords => new(xCoord, yCoord);
+    [JsonIgnore] public Vector3 Position => new(MapLink.RawX / 1000, 0, MapLink.RawY / 1000);
 
     public HuntingMonsterLocation(uint terri, uint map)
     {

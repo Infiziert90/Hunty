@@ -1,5 +1,3 @@
-﻿using Dalamud.IoC;
-using Dalamud.Plugin;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -8,16 +6,18 @@ using System.Linq;
 using System.Numerics;
 using Dalamud.Game;
 using Dalamud.Game.ClientState.Objects.Enums;
-using Hunty.Windows;
 using Dalamud.Game.Command;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Interface.Windowing;
+using Dalamud.IoC;
+using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Hunty.Data;
 using Hunty.IPC;
 using Hunty.Resources;
+using Hunty.Windows;
 using Hunty.Windows.Config;
 using Lumina.Excel.Sheets;
 using Newtonsoft.Json;
@@ -38,6 +38,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] public static IPluginLog Log { get; set; } = null!;
     [PluginService] public static ITextureProvider Texture { get; set; } = null!;
     [PluginService] public static ISeStringEvaluator Evaluator { get; set; } = null!;
+    [PluginService] public static IObjectTable Objects { get; set; } = null!;
 
     private const string CommandName = "/hunty";
     private const string CommandXL = "/huntyxl";
@@ -220,7 +221,7 @@ public sealed class Plugin : IDalamudPlugin
         {
             foreach (var (task, progress) in huntingRank.Tasks.Zip(jobMemory.RankData.ToArray()))
             {
-                foreach (var (monster, idx) in task.Monsters.Select((monster, i) => ( monster, i )))
+                foreach (var (monster, idx) in task.Monsters.Select((monster, i) => (monster, i)))
                 {
                     var killed = progress.Counts[idx];
                     currentProgress.Add(monster.Name, killed == monster.Count ? new MonsterProgress(true) : new MonsterProgress(killed));
@@ -259,7 +260,7 @@ public sealed class Plugin : IDalamudPlugin
         TeleportConsumer.UseTeleport(nearestAetheryte.Value.RowId);
     }
 
-    private static Vector2 ConvertLocationToRaw(int x, int y, float scale)
+    internal static Vector2 ConvertLocationToRaw(int x, int y, float scale)
     {
         var num = scale / 100f;
         return new Vector2(ConvertRawToMap((int)((x - 1024) * num * 1000f), scale), ConvertRawToMap((int)((y - 1024) * num * 1000f), scale));

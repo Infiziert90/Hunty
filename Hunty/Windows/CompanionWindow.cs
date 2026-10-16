@@ -1,13 +1,18 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Numerics;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
+using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
+using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using Hunty.Resources;
-using Dalamud.Bindings.ImGui;
+using Lumina.Excel.Sheets;
 
 namespace Hunty.Windows;
 
@@ -33,19 +38,62 @@ public class CompanionWindow : Window, IDisposable
         { 10002, 60568 }, /* Twin Adder */
         { 10003, 60569 }, /* Immortal Flames */
     };
+    private static readonly Dictionary<uint, uint> ClassToJob = new() {
+        { 1, 19 },
+        { 2, 20 },
+        { 3, 21 },
+        { 4, 22 },
+        { 5, 23 },
+        { 6, 24 },
+        { 7, 25 },
+        { 26, 27 },
+        { 29, 30 }
+    };
+    private readonly ReadOnlyDictionary<uint, sbyte> ClassJobToExpArrayIndex;
 
-    public CompanionWindow(Plugin plugin) : base("Hunty Companion")
+    public CompanionWindow(Plugin plugin) : base("Hunty Companion", ImGuiWindowFlags.NoScrollbar)
     {
-        SizeConstraints = new WindowSizeConstraints
-        {
-            MinimumSize = new Vector2(600, 450),
-            MaximumSize = new Vector2(float.MaxValue, float.MaxValue)
-        };
 
         Plugin = plugin;
+        ClassJobToExpArrayIndex = Plugin.Data.GetExcelSheet<ClassJob>()
+            .Where(x => x is { RowId: > 0, ExpArrayIndex: >= 0 })
+            .ToDictionary(x => x.RowId, x => x.ExpArrayIndex)
+            .AsReadOnly();
     }
 
     public void Dispose() { }
+
+    public unsafe void EquipGearset(byte id) => RaptureGearsetModule.Instance()->EquipGearset(id);
+
+    internal unsafe ReadOnlyCollection<(byte Id, uint ClassJob, short Level, short ItemLevel)> GetJobGearSets()
+    {
+        List<(byte, uint, short, short)> jobs = [];
+
+        var playerState = PlayerState.Instance();
+        var gearsetModule = RaptureGearsetModule.Instance();
+        if (playerState == null || gearsetModule == null)
+            return jobs.AsReadOnly();
+
+        for (var i = 0; i < 100; ++i)
+        {
+            var gearset = gearsetModule->GetGearset(i);
+            if (gearset->Flags.HasFlag(RaptureGearsetModule.GearsetFlag.Exists))
+            {
+                var gearsetJob = gearset->ClassJob;
+                if (!ClassToJob.ContainsKey(gearsetJob) && !ClassToJob.ContainsValue(gearsetJob))
+                    continue;
+
+                var level = playerState->ClassJobLevels[ClassJobToExpArrayIndex[gearsetJob]];
+                if (level == 0)
+                    continue;
+
+                var itemLevel = gearset->ItemLevel;
+                jobs.Add((gearset->Id, gearsetJob, level, itemLevel));
+            }
+        }
+
+        return jobs.AsReadOnly();
+    }
 
     public override void Draw()
     {
@@ -78,6 +126,13 @@ public class CompanionWindow : Window, IDisposable
             }
         }
 
+        if (currentAreas.Count == 0)
+        {
+            ImGuiHelpers.ScaledDummy(5);
+            Helper.TextColored(ImGuiColors.HealerGreen, Language.ErrorLogDone);
+            return;
+        }
+
         var areaList = currentAreas.Keys.OrderBy(name => territories[name]).ToArray();
 
         var areaSelected = false;
@@ -106,15 +161,19 @@ public class CompanionWindow : Window, IDisposable
         LastArea = areaList[SelectedArea];
 
         ImGuiHelpers.ScaledDummy(5.0f);
-        using var table = ImRaii.Table("##monsterTable", 4);
+        using var table = ImRaii.Table("##monsterTable", 5);
         if (table.Success)
         {
             ImGui.TableSetupColumn("##icon", ImGuiTableColumnFlags.WidthFixed, Helper.IconSize.X * ImGuiHelpers.GlobalScale);
             ImGui.TableSetupColumn(Language.TableLabelMonster);
-            ImGui.TableSetupColumn(Language.TableLabelDone, ImGuiTableColumnFlags.None, 0.4f);
-            ImGui.TableSetupColumn(Language.TableLabelCoords, ImGuiTableColumnFlags.None, 1.5f);
+            ImGui.TableSetupColumn("Rank", ImGuiTableColumnFlags.WidthFixed, 50f);
+            ImGui.TableSetupColumn(Language.TableLabelDone, ImGuiTableColumnFlags.WidthFixed, 75f);
+            ImGui.TableSetupColumn(Language.TableLabelCoords, ImGuiTableColumnFlags.WidthFixed, 100f);
 
             ImGui.TableHeadersRow();
+            var playerPosition = Plugin.Objects[0]?.Position;
+            if (playerPosition != null)
+                playerPosition = new(playerPosition.Value.X, 0, playerPosition.Value.Z);
             foreach (var (job, monster) in currentAreas[LastArea].OrderBy(a => a.Item2.Name))
             {
                 var index = monster.Locations.FindIndex(l => l.Name == LastArea);
@@ -131,17 +190,44 @@ public class CompanionWindow : Window, IDisposable
 
                 ImGui.TableNextColumn();
                 ImGui.TextUnformatted(Plugin.GetMonsterNameLoc(monster.Id));
+                if (ImGui.IsItemClicked())
+                {
+                    if (Plugin.CommandManager.Commands.ContainsKey("/esp"))
+                        Plugin.CommandManager.ProcessCommand($"/esp sub {Plugin.GetMonsterNameLoc(monster.Id)}");
+                    ShowLocation(monsterLocation);
+                }
+                if (ImGui.IsItemHovered())
+                    ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted($"{Plugin.GetRankFromMemory(job) + 1} (Lv{Plugin.GetRankFromMemory(job) * 10})");
 
                 ImGui.TableNextColumn();
                 Helper.DrawIcon(RequirementIcons[job], 0.75f);
+                var gearset = GetJobGearSets().FirstOrNull(x => x.ClassJob == job ||
+                    ClassToJob.TryGetValue(job, out var classToJob) && x.ClassJob == classToJob);
+                var _job = gearset?.ClassJob ?? job;
+                if (ImGui.IsItemClicked() && job <= 10000 && gearset != null)
+                {
+                    EquipGearset(gearset.Value.Id);
+                }
                 if (ImGui.IsItemHovered())
-                    Helper.Tooltip(Utils.ToTitleCaseExtended(job > 10000 ? Plugin.CurrentGcName : Sheets.ClassJobSheet.GetRow(job).Name));
+                {
+                    if (job <= 10000 && gearset != null)
+                        ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+                    Helper.Tooltip(Utils.ToTitleCaseExtended(job > 10000 ? Plugin.CurrentGcName : Sheets.ClassJobSheet.GetRow(_job).Name));
+                }
 
                 ImGui.SameLine();
                 ImGui.AlignTextToFramePadding();
                 ImGui.TextUnformatted($"{monsterProgress.Killed} / {monster.Count.ToString()}");
 
                 ImGui.TableNextColumn();
+                var distance = string.Empty;
+                if (playerPosition != null && monsterLocation.Terri == Plugin.ClientState.TerritoryType)
+                {
+                    distance = $"{Vector3.Distance(monsterLocation.Position, playerPosition.Value):N0}y ";
+                }
                 if (monster.IsOpenWorld)
                 {
                     if (Plugin.TeleportConsumer.IsAvailable)
@@ -149,15 +235,14 @@ public class CompanionWindow : Window, IDisposable
                         using var pushedFont = ImRaii.PushFont(UiBuilder.IconFont);
                         if (ImGui.Button($"{FontAwesomeIcon.StreetView.ToIconString()}##{job}{monster.Name}{monster.Icon.ToString()}{monster.Count}"))
                         {
-                            Plugin.TeleportToNearestAetheryte(monsterLocation);
-                            Plugin.SetMapMarker(monsterLocation.MapLink);
+                            ShowLocation(monsterLocation, teleport: true);
                         }
 
                         ImGui.SameLine();
                     }
 
-                    if (ImGui.Selectable($"{monsterLocation.Name} {monsterLocation.MapLink.CoordinateString}##{job}{monster.Icon.ToString()}"))
-                        Plugin.SetMapMarker(monsterLocation.MapLink);
+                    if (ImGui.Selectable($"{distance}{monsterLocation.Name} {monsterLocation.MapLink.CoordinateString}##{job}{monster.Icon.ToString()}"))
+                        ShowLocation(monsterLocation);
                 }
                 else
                 {
@@ -168,5 +253,12 @@ public class CompanionWindow : Window, IDisposable
                 ImGui.TableNextRow();
             }
         }
+    }
+
+    public void ShowLocation(HuntingMonsterLocation monsterLocation, bool teleport = false)
+    {
+        if (teleport)
+            Plugin.TeleportToNearestAetheryte(monsterLocation);
+        Plugin.SetMapMarker(monsterLocation.MapLink);
     }
 }
